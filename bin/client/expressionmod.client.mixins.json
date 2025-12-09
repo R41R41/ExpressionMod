@@ -1,0 +1,12 @@
+{
+    "required": true,
+    "package": "com.expression.mixin",
+    "compatibilityLevel": "JAVA_21",
+    "client": [
+        "PlayerSkinTextureMixin",
+        "PlayerEntityRendererMixin"
+    ],
+    "injectors": {
+        "defaultRequire": 0
+    }
+}
