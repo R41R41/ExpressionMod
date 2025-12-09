@@ -1,6 +1,7 @@
 package com.expression.network;
 
 import com.expression.ExpressionMod;
+import com.expression.skin.EmoteManager;
 import com.expression.state.EmoteType;
 import com.expression.state.ExpressionState;
 import com.expression.state.ExpressionStateManager;
@@ -23,9 +24,24 @@ public class ClientNetworkHandler {
                 // 自分以外のプレイヤーの状態を更新
                 MinecraftClient client = MinecraftClient.getInstance();
                 if (client.player != null && !client.player.getUuid().equals(payload.playerUuid())) {
-                    ExpressionState state = ExpressionStateManager.getInstance()
-                            .getOrCreate(payload.playerUuid(), payload.playerName());
-                    state.setEmote(EmoteType.fromId(payload.emoteId()), payload.durationMs());
+                    String emoteId = payload.emoteId();
+
+                    // スキンベースのエモートかチェック
+                    if (emoteId != null && emoteId.startsWith("skin_emote_")) {
+                        try {
+                            int emoteIndex = Integer.parseInt(emoteId.substring("skin_emote_".length()));
+                            EmoteManager.startEmote(payload.playerUuid(), emoteIndex);
+                            ExpressionMod.LOGGER.info("[ClientNetworkHandler] Received skin emote " + emoteIndex +
+                                    " from " + payload.playerName());
+                        } catch (NumberFormatException e) {
+                            ExpressionMod.LOGGER.warn("[ClientNetworkHandler] Invalid skin emote ID: " + emoteId);
+                        }
+                    } else {
+                        // 通常のエモート
+                        ExpressionState state = ExpressionStateManager.getInstance()
+                                .getOrCreate(payload.playerUuid(), payload.playerName());
+                        state.setEmote(EmoteType.fromId(emoteId), payload.durationMs());
+                    }
                 }
             });
         });
@@ -94,6 +110,26 @@ public class ClientNetworkHandler {
                     target != null ? target.y : 0,
                     target != null ? target.z : 0);
             ClientPlayNetworking.send(payload);
+        }
+    }
+
+    /**
+     * スキンベースのエモートをサーバーに送信
+     * 
+     * @param emoteIndex エモートインデックス（0-4）
+     */
+    public static void sendEmoteSync(int emoteIndex) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client.player != null && client.getNetworkHandler() != null) {
+            // スキンエモートはemoteIdを "skin_emote_X" の形式で送信
+            String emoteId = "skin_emote_" + emoteIndex;
+            EmoteSyncPayload payload = new EmoteSyncPayload(
+                    client.player.getUuid(),
+                    client.player.getName().getString(),
+                    emoteId,
+                    com.expression.skin.EmoteManager.EMOTE_DURATION_MS);
+            ClientPlayNetworking.send(payload);
+            ExpressionMod.LOGGER.info("[ClientNetworkHandler] Sent skin emote: " + emoteId);
         }
     }
 }

@@ -180,11 +180,22 @@ public class BlinkTextureManager {
         public final Identifier originalSkin;
         public final Identifier[] frames; // 10フレーム
         public final boolean hasBlinkFeature;
+        public final EmoteManager.EmoteTextureData emoteData; // エモートデータ
 
         public BlinkTextureData(Identifier originalSkin, Identifier[] frames, boolean hasBlinkFeature) {
+            this(originalSkin, frames, hasBlinkFeature, null);
+        }
+
+        public BlinkTextureData(Identifier originalSkin, Identifier[] frames, boolean hasBlinkFeature,
+                EmoteManager.EmoteTextureData emoteData) {
             this.originalSkin = originalSkin;
             this.frames = frames;
             this.hasBlinkFeature = hasBlinkFeature;
+            this.emoteData = emoteData;
+        }
+
+        public boolean hasAnyEmote() {
+            return emoteData != null && emoteData.hasAnyEmote();
         }
     }
 
@@ -250,9 +261,12 @@ public class BlinkTextureManager {
                 }
             }
 
+            // エモートデータを作成（skinImageを閉じる前に）
+            EmoteManager.EmoteTextureData emoteData = EmoteManager.getOrCreate(skinTexture, skinImage);
+
             skinImage.close();
 
-            BlinkTextureData data = new BlinkTextureData(skinTexture, frames, true);
+            BlinkTextureData data = new BlinkTextureData(skinTexture, frames, true, emoteData);
             skinCache.put(skinTexture, data);
             return data;
 
@@ -273,9 +287,10 @@ public class BlinkTextureManager {
 
     /**
      * マーカーをチェックして目の設定を取得
-     * [y=0,x=63]にシアン → x=0-7, y=0-7 から取得、eyeY=4（標準形式、目幅2マス）
-     * [y=1,x=63]にシアン → x=24-31, y=0-7 から取得、eyeY=3（1マス上、代替形式、目幅2マス）
-     * [y=2,x=63]にシアン → x=56-63, y=16-25 から取得、eyeY=4（目幅1マス形式）
+     * getColorArgb(x, y) - マーカーはy=0行に横並び:
+     * [0,0]にシアン → テクスチャ[56-63, 0-7]、eyeY=4（標準形式、目幅2マス）
+     * [1,0]にシアン → テクスチャ[56-63, 0-7]、eyeY=3（1マス上、目幅2マス）
+     * [2,0]にシアン → テクスチャ[56-63, 16-25]、eyeY=4（目幅1マス形式）
      * マーカーがない場合は無効
      */
     private static EyeConfig checkMarkers(NativeImage skin) {
@@ -284,39 +299,33 @@ public class BlinkTextureManager {
             return EyeConfig.invalid();
         }
 
-        // [y=0,x=63]のマーカーをチェック（標準形式、目幅2マス）
-        // getColorArgb(x, y) なので getColorArgb(63, 0)
-        int marker0 = skin.getColorArgb(63, 0);
+        // [0,0]のマーカーをチェック（標準形式、目幅2マス）
+        int marker0 = skin.getColorArgb(0, 0);
         if (isCyan(marker0)) {
             ExpressionMod.LOGGER
-                    .info("[BlinkTextureManager] Found marker at [y=0,x=63] - using standard format (x=0-7, y=0-7, eyeWidth=2)");
-            // x=0-7, y=0-7 から取得、目のY位置は4、目幅2マス
-            return new EyeConfig(0, 0, 4, true, 2, false);
+                    .info("[BlinkTextureManager] Found marker at [0,0] - standard format (tex=56-63,0-7, eyeWidth=2)");
+            return new EyeConfig(56, 0, 4, true, 2, false);
         }
 
-        // [y=1,x=63]のマーカーをチェック（代替形式、目幅2マス）
-        // getColorArgb(x, y) なので getColorArgb(63, 1)
-        int marker1 = skin.getColorArgb(63, 1);
+        // [1,0]のマーカーをチェック（描画位置1マス上、目幅2マス）
+        int marker1 = skin.getColorArgb(1, 0);
         if (isCyan(marker1)) {
             ExpressionMod.LOGGER
-                    .info("[BlinkTextureManager] Found marker at [y=1,x=63] - using alternate format (x=24-31, y=0-7, eyeWidth=2)");
-            // x=24-31, y=0-7 から取得、目のY位置は3（1マス上）、目幅2マス
-            return new EyeConfig(24, 0, 3, true, 2, false);
+                    .info("[BlinkTextureManager] Found marker at [1,0] - alternate format (tex=56-63,0-7, eyeWidth=2, eyeY=3)");
+            return new EyeConfig(56, 0, 3, true, 2, false);
         }
 
-        // [y=2,x=63]のマーカーをチェック（目幅1マス形式）
-        // getColorArgb(x, y) なので getColorArgb(63, 2)
-        int marker2 = skin.getColorArgb(63, 2);
+        // [2,0]のマーカーをチェック（目幅1マス形式）
+        int marker2 = skin.getColorArgb(2, 0);
         if (isCyan(marker2)) {
             ExpressionMod.LOGGER
-                    .info("[BlinkTextureManager] Found marker at [y=2,x=63] - using single-width eye format (x=56-63, y=16-25, eyeWidth=1)");
-            // x=56-63, y=16-25 から取得、目のY位置は4、目幅1マス、方向別まつ毛あり
+                    .info("[BlinkTextureManager] Found marker at [2,0] - single-width eye format (tex=56-63,16-25, eyeWidth=1)");
             return new EyeConfig(56, 16, 4, true, 1, true);
         }
 
         // マーカーがない場合は無効（MODを発動しない）
         ExpressionMod.LOGGER
-                .debug("[BlinkTextureManager] No cyan marker found at [y=0,x=63], [y=1,x=63], or [y=2,x=63]");
+                .debug("[BlinkTextureManager] No cyan marker found at [0,0], [1,0], or [2,0]");
         return EyeConfig.invalid();
     }
 
@@ -566,7 +575,25 @@ public class BlinkTextureManager {
             data = getOrCreate(originalSkin);
         }
 
-        if (data == null || !data.hasBlinkFeature || data.frames == null) {
+        if (data == null) {
+            return null;
+        }
+
+        // 現在レンダリング中のプレイヤーを取得
+        AbstractClientPlayerEntity player = currentRenderingPlayer;
+
+        // エモート中かどうかチェック
+        if (player != null && data.emoteData != null && data.emoteData.hasAnyEmote()) {
+            int emoteIndex = EmoteManager.getCurrentEmote(player.getUuid());
+            if (emoteIndex >= 0 && emoteIndex < EmoteManager.MAX_EMOTES) {
+                if (data.emoteData.emoteEnabled[emoteIndex] && data.emoteData.emoteTextures[emoteIndex] != null) {
+                    return data.emoteData.emoteTextures[emoteIndex];
+                }
+            }
+        }
+
+        // まばたき機能がない場合は元のスキンを使用
+        if (!data.hasBlinkFeature || data.frames == null) {
             return null;
         }
 
@@ -574,7 +601,6 @@ public class BlinkTextureManager {
         EyeState state;
         EyePosition position;
 
-        AbstractClientPlayerEntity player = currentRenderingPlayer;
         if (player != null) {
             // そのプレイヤー固有の状態を計算
             PlayerEyeResult result = calculatePlayerEyeState(player);

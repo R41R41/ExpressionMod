@@ -1,9 +1,11 @@
 package com.expression;
 
 import com.expression.network.ClientNetworkHandler;
+import com.expression.render.EmoteSelectionScreen;
 import com.expression.render.EyelidRenderer;
 import com.expression.skin.BlinkController;
 import com.expression.skin.BlinkTextureManager;
+import com.expression.skin.EmoteManager;
 import com.expression.skin.EyeStateController;
 import com.expression.skin.EyelidTextureData;
 import com.expression.state.EmoteState;
@@ -14,13 +16,14 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
-import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
-import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
+import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.client.option.KeyBinding;
+import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.entity.effect.StatusEffects;
+import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.UUID;
@@ -38,6 +41,11 @@ public class ExpressionModClient implements ClientModInitializer {
     private static KeyBinding thinkKey;
     private static KeyBinding shyKey;
     private static KeyBinding reloadCacheKey;
+
+    // エモート選択UI用
+    private static boolean wasLeftMousePressed = false;
+    private static boolean emoteMenuOpened = false;
+    private static NativeImage cachedSkinImage = null;
 
     @Override
     public void onInitializeClient() {
@@ -89,6 +97,9 @@ public class ExpressionModClient implements ClientModInitializer {
             // キー入力処理
             processKeyInput(client);
 
+            // エモート選択UI処理
+            processEmoteSelection(client);
+
             // 目の状態を更新（まばたき + アイトラッキング + 睡眠/盲目）
             EyeStateController.update();
 
@@ -107,6 +118,11 @@ public class ExpressionModClient implements ClientModInitializer {
             }
         });
 
+        // HUD描画イベント - エモート選択UIを描画
+        HudRenderCallback.EVENT.register((context, tickDelta) -> {
+            EmoteSelectionScreen.render(context);
+        });
+
         // クライアントネットワークハンドラー登録
         ClientNetworkHandler.registerClientReceivers();
 
@@ -115,12 +131,129 @@ public class ExpressionModClient implements ClientModInitializer {
             ExpressionStateManager.getInstance().clear();
             EyelidRenderer.clearAll();
             BlinkTextureManager.clearCache();
+            EmoteManager.clearCache();
             EyelidTextureData.clearAllCaches();
             EyeStateController.reset();
         });
 
         ExpressionMod.LOGGER.info("Expression Mod Client initialized!");
         ExpressionMod.LOGGER.info("Emote keys: Numpad 1-6, Cache clear: Numpad 0");
+        ExpressionMod.LOGGER.info("Emote selection: Ctrl + Left Click");
+    }
+
+    /**
+     * エモート選択UIを処理
+     */
+    private void processEmoteSelection(MinecraftClient client) {
+        if (client.player == null || client.currentScreen != null) {
+            // 画面が開いている場合はエモートメニューを閉じる
+            if (EmoteSelectionScreen.isActive()) {
+                EmoteSelectionScreen.close(false);
+                emoteMenuOpened = false;
+                wasLeftMousePressed = false;
+            }
+            return;
+        }
+
+        long windowHandle = client.getWindow().getHandle();
+        boolean isCtrlPressed = GLFW.glfwGetKey(windowHandle, GLFW.GLFW_KEY_LEFT_CONTROL) == GLFW.GLFW_PRESS ||
+                GLFW.glfwGetKey(windowHandle, GLFW.GLFW_KEY_RIGHT_CONTROL) == GLFW.GLFW_PRESS;
+        boolean isLeftMousePressed = GLFW.glfwGetMouseButton(windowHandle,
+                GLFW.GLFW_MOUSE_BUTTON_LEFT) == GLFW.GLFW_PRESS;
+
+        // マウス位置を取得
+        double[] mouseX = new double[1];
+        double[] mouseY = new double[1];
+        GLFW.glfwGetCursorPos(windowHandle, mouseX, mouseY);
+        int scaledMouseX = (int) (mouseX[0] * client.getWindow().getScaledWidth() / client.getWindow().getWidth());
+        int scaledMouseY = (int) (mouseY[0] * client.getWindow().getScaledHeight() / client.getWindow().getHeight());
+
+        // Ctrl + 左クリック開始でメニューを開く
+        if (isCtrlPressed && isLeftMousePressed && !wasLeftMousePressed && !emoteMenuOpened) {
+            // スキンテクスチャからエモートデータを取得
+            Identifier skinTexture = client.player.getSkinTextures().texture();
+            BlinkTextureManager.BlinkTextureData data = BlinkTextureManager.getOrCreate(skinTexture);
+
+            ExpressionMod.LOGGER.info("[ExpressionModClient] Ctrl+Click detected, data=" + data +
+                    ", hasAnyEmote=" + (data != null ? data.hasAnyEmote() : "null"));
+
+            if (data != null && data.hasAnyEmote()) {
+                // スキン画像を読み込んでエモートメニューを開く
+                try {
+                    cachedSkinImage = loadSkinImageForEmote(skinTexture);
+                    if (cachedSkinImage != null) {
+                        EmoteSelectionScreen.open(scaledMouseX, scaledMouseY, cachedSkinImage, data.emoteData);
+                        emoteMenuOpened = true;
+                        // マウスカーソルを表示
+                        client.mouse.unlockCursor();
+                        ExpressionMod.LOGGER.info("[ExpressionModClient] Emote menu opened, cursor unlocked");
+                    }
+                } catch (Exception e) {
+                    ExpressionMod.LOGGER.error("[ExpressionModClient] Error opening emote menu", e);
+                }
+            }
+        }
+
+        // メニューが開いている間はマウス位置を更新
+        if (EmoteSelectionScreen.isActive()) {
+            EmoteSelectionScreen.updateMousePosition(scaledMouseX, scaledMouseY);
+        }
+
+        // 左クリックを離したらメニューを閉じて選択確定
+        if (emoteMenuOpened && wasLeftMousePressed && !isLeftMousePressed) {
+            EmoteSelectionScreen.close(true);
+            emoteMenuOpened = false;
+            // カーソルをロック
+            client.mouse.lockCursor();
+            if (cachedSkinImage != null) {
+                cachedSkinImage.close();
+                cachedSkinImage = null;
+            }
+        }
+
+        // Ctrlを離したらキャンセル
+        if (emoteMenuOpened && !isCtrlPressed) {
+            EmoteSelectionScreen.close(false);
+            emoteMenuOpened = false;
+            // カーソルをロック
+            client.mouse.lockCursor();
+            if (cachedSkinImage != null) {
+                cachedSkinImage.close();
+                cachedSkinImage = null;
+            }
+        }
+
+        wasLeftMousePressed = isLeftMousePressed;
+    }
+
+    /**
+     * エモート用にスキン画像を読み込む
+     */
+    @org.jetbrains.annotations.Nullable
+    private NativeImage loadSkinImageForEmote(Identifier skinTexture) {
+        try {
+            var client = MinecraftClient.getInstance();
+            var textureManager = client.getTextureManager();
+            var texture = textureManager.getTexture(skinTexture);
+
+            if (texture instanceof net.minecraft.client.texture.NativeImageBackedTexture nativeTexture) {
+                NativeImage pixels = nativeTexture.getImage();
+                if (pixels != null) {
+                    NativeImage copy = new NativeImage(pixels.getWidth(), pixels.getHeight(), false);
+                    copy.copyFrom(pixels);
+                    return copy;
+                }
+            }
+
+            var resourceManager = client.getResourceManager();
+            var resource = resourceManager.getResource(skinTexture);
+            if (resource.isPresent()) {
+                return NativeImage.read(resource.get().getInputStream());
+            }
+        } catch (Exception e) {
+            ExpressionMod.LOGGER.debug("[ExpressionModClient] Could not load skin: " + skinTexture, e);
+        }
+        return null;
     }
 
     /**
@@ -178,6 +311,7 @@ public class ExpressionModClient implements ClientModInitializer {
             ExpressionMod.LOGGER.info("Clearing expression cache...");
             EyelidRenderer.clearAll();
             BlinkTextureManager.clearCache();
+            EmoteManager.clearCache();
             EyelidTextureData.clearAllCaches();
             if (client.player != null) {
                 client.player.sendMessage(
