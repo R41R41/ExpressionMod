@@ -167,30 +167,31 @@ public class EmoteManager {
 
     /**
      * エモートマーカーをチェック
+     * getColorArgb(x, y) なので {markerX, markerY, srcX, srcY} の順
      */
     private static List<EmoteConfig> checkEmoteMarkers(NativeImage skin) {
         List<EmoteConfig> configs = new ArrayList<>();
 
-        // エモートマーカーの定義
-        // [y=0, x=1] → [24-31, 0-4]
-        // [y=1, x=1] → [32-39, 0-4]
-        // [y=2, x=1] → [56-63, 32-36]
-        // [y=3, x=1] → [56-63, 37-41]
-        // [y=4, x=1] → [56-63, 42-46]
+        // エモートマーカーの定義 {markerX, markerY, srcX, srcY}
+        // [x=0, y=1] → [24-31, 0-4]
+        // [x=1, y=1] → [32-39, 0-4]
+        // [x=1, y=2] → [56-63, 32-36]
+        // [x=1, y=3] → [56-63, 37-41]
+        // [x=1, y=4] → [56-63, 42-46]
         int[][] emoteMarkers = {
-                { 0, 1, 24, 0 }, // エモート0: マーカー[y=0,x=1], テクスチャ[24-31, 0-4]
-                { 1, 1, 32, 0 }, // エモート1: マーカー[y=1,x=1], テクスチャ[32-39, 0-4]
-                { 2, 1, 56, 32 }, // エモート2: マーカー[y=2,x=1], テクスチャ[56-63, 32-36]
-                { 3, 1, 56, 37 }, // エモート3: マーカー[y=3,x=1], テクスチャ[56-63, 37-41]
-                { 4, 1, 56, 42 }, // エモート4: マーカー[y=4,x=1], テクスチャ[56-63, 42-46]
+                { 0, 1, 24, 0 }, // エモート0: マーカー[x=0,y=1], テクスチャ[24-31, 0-4]
+                { 1, 1, 32, 0 }, // エモート1: マーカー[x=1,y=1], テクスチャ[32-39, 0-4]
+                { 1, 2, 56, 32 }, // エモート2: マーカー[x=1,y=2], テクスチャ[56-63, 32-36]
+                { 1, 3, 56, 37 }, // エモート3: マーカー[x=1,y=3], テクスチャ[56-63, 37-41]
+                { 1, 4, 56, 42 }, // エモート4: マーカー[x=1,y=4], テクスチャ[56-63, 42-46]
         };
 
         ExpressionMod.LOGGER
                 .info("[EmoteManager] Checking emote markers in skin " + skin.getWidth() + "x" + skin.getHeight());
 
         for (int i = 0; i < emoteMarkers.length; i++) {
-            int markerY = emoteMarkers[i][0];
-            int markerX = emoteMarkers[i][1];
+            int markerX = emoteMarkers[i][0];
+            int markerY = emoteMarkers[i][1];
             int srcX = emoteMarkers[i][2];
             int srcY = emoteMarkers[i][3];
 
@@ -200,7 +201,7 @@ public class EmoteManager {
             int green = (markerColor >> 8) & 0xFF;
             int blue = markerColor & 0xFF;
 
-            ExpressionMod.LOGGER.info("[EmoteManager] Marker " + i + " at [y=" + markerY + ",x=" + markerX +
+            ExpressionMod.LOGGER.info("[EmoteManager] Marker " + i + " at [x=" + markerX + ",y=" + markerY +
                     "]: color=0x" + Integer.toHexString(markerColor) + " (A=" + alpha + ",R=" + red + ",G=" + green
                     + ",B=" + blue +
                     "), isCyan=" + isCyan(markerColor));
@@ -208,7 +209,7 @@ public class EmoteManager {
             if (isCyan(markerColor)) {
                 configs.add(new EmoteConfig(i, srcX, srcY, true));
                 ExpressionMod.LOGGER.info("[EmoteManager] Found emote marker " + i +
-                        " at [y=" + markerY + ",x=" + markerX + "] -> texture [" + srcX + "-" + (srcX + 7) + ", " + srcY
+                        " at [x=" + markerX + ",y=" + markerY + "] -> texture [" + srcX + "-" + (srcX + 7) + ", " + srcY
                         + "-" + (srcY + 4) + "]");
             }
         }
