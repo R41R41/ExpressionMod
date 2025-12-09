@@ -231,7 +231,7 @@ public class EmoteManager {
 
     /**
      * エモートフレームを作成
-     * 8x5ピクセルの領域を顔に適用
+     * 8x5ピクセルの領域全体を顔に適用
      */
     @Nullable
     private static NativeImage createEmoteFrame(NativeImage originalSkin, EmoteConfig config) {
@@ -239,19 +239,17 @@ public class EmoteManager {
             NativeImage newSkin = new NativeImage(originalSkin.getWidth(), originalSkin.getHeight(), false);
             newSkin.copyFrom(originalSkin);
 
-            // エモート領域（8x5）を顔のベースレイヤー（8,8）-(15,15）の目の位置に適用
-            // 顔の上部5ピクセル（y=8-12）に適用
+            // エモート領域（8x5）を顔のベースレイヤー（8,8）-(15,15）に全体適用
+            // 顔のY=3-7（5ピクセル）に適用
             int faceX = 8;
             int faceY = 8;
 
-            // エモート領域の目の位置（x=1-2: 左目, x=5-6: 右目）のみを置換
-            int[] eyeXPositions = { 1, 2, 5, 6 };
-
-            for (int x : eyeXPositions) {
+            // 8x5の領域全体を置換
+            for (int dx = 0; dx < 8; dx++) {
                 for (int dy = 0; dy < 5; dy++) {
-                    int srcX = config.srcX + x;
+                    int srcX = config.srcX + dx;
                     int srcY = config.srcY + dy;
-                    int destX = faceX + x;
+                    int destX = faceX + dx;
                     int destY = faceY + 3 + dy; // Y=3から開始（目の位置）
 
                     if (destY < faceY + 8) { // 顔の範囲内
