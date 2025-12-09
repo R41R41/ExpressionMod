@@ -287,10 +287,10 @@ public class BlinkTextureManager {
 
     /**
      * マーカーをチェックして目の設定を取得
-     * getColorArgb(x, y) なので注意！マーカーはx=0列に配置:
-     * [x=0,y=0]にシアン → テクスチャ[24-31, 0-7]、eyeY=4（標準形式、目幅2マス）
-     * [x=0,y=1]にシアン → テクスチャ[24-31, 0-7]、eyeY=3（1マス上、目幅2マス）
-     * [x=0,y=2]にシアン → テクスチャ[56-63, 16-25]、eyeY=4（目幅1マス形式）
+     * getColorArgb(x, y) - マーカーはy=0行に横並び:
+     * [0,0]にシアン → テクスチャ[24-31, 0-7]、eyeY=4（標準形式、目幅2マス）
+     * [1,0]にシアン → テクスチャ[24-31, 0-7]、eyeY=3（1マス上、目幅2マス）
+     * [2,0]にシアン → テクスチャ[56-63, 16-25]、eyeY=4（目幅1マス形式）
      * マーカーがない場合は無効
      */
     private static EyeConfig checkMarkers(NativeImage skin) {
@@ -299,33 +299,33 @@ public class BlinkTextureManager {
             return EyeConfig.invalid();
         }
 
-        // [x=0,y=0]のマーカーをチェック（標準形式、目幅2マス）
+        // [0,0]のマーカーをチェック（標準形式、目幅2マス）
         int marker0 = skin.getColorArgb(0, 0);
         if (isCyan(marker0)) {
             ExpressionMod.LOGGER
-                    .info("[BlinkTextureManager] Found marker at [x=0,y=0] - using standard format (tex=24-31,0-7, eyeWidth=2)");
+                    .info("[BlinkTextureManager] Found marker at [0,0] - standard format (tex=24-31,0-7, eyeWidth=2)");
             return new EyeConfig(24, 0, 4, true, 2, false);
         }
 
-        // [x=0,y=1]のマーカーをチェック（描画位置1マス上、目幅2マス）
-        int marker1 = skin.getColorArgb(0, 1);
+        // [1,0]のマーカーをチェック（描画位置1マス上、目幅2マス）
+        int marker1 = skin.getColorArgb(1, 0);
         if (isCyan(marker1)) {
             ExpressionMod.LOGGER
-                    .info("[BlinkTextureManager] Found marker at [x=0,y=1] - using alternate format (tex=24-31,0-7, eyeWidth=2, eyeY=3)");
+                    .info("[BlinkTextureManager] Found marker at [1,0] - alternate format (tex=24-31,0-7, eyeWidth=2, eyeY=3)");
             return new EyeConfig(24, 0, 3, true, 2, false);
         }
 
-        // [x=0,y=2]のマーカーをチェック（目幅1マス形式）
-        int marker2 = skin.getColorArgb(0, 2);
+        // [2,0]のマーカーをチェック（目幅1マス形式）
+        int marker2 = skin.getColorArgb(2, 0);
         if (isCyan(marker2)) {
             ExpressionMod.LOGGER
-                    .info("[BlinkTextureManager] Found marker at [x=0,y=2] - using single-width eye format (tex=56-63,16-25, eyeWidth=1)");
+                    .info("[BlinkTextureManager] Found marker at [2,0] - single-width eye format (tex=56-63,16-25, eyeWidth=1)");
             return new EyeConfig(56, 16, 4, true, 1, true);
         }
 
         // マーカーがない場合は無効（MODを発動しない）
         ExpressionMod.LOGGER
-                .debug("[BlinkTextureManager] No cyan marker found at [x=0,y=0], [x=0,y=1], or [x=0,y=2]");
+                .debug("[BlinkTextureManager] No cyan marker found at [0,0], [1,0], or [2,0]");
         return EyeConfig.invalid();
     }
 
