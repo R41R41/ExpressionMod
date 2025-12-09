@@ -199,12 +199,12 @@ public class EmoteSelectionScreen {
             // プレビュー画像（8x5を拡大して描画）
             if (entry.previewTexture != null) {
                 context.drawTexture(
-                    RenderLayer::getGuiTextured,
-                    entry.previewTexture, 
-                    menuX + PADDING, entryY, 
-                    0, 0, 
-                    EMOTE_SIZE, EMOTE_HEIGHT, 
-                    EMOTE_SIZE, EMOTE_HEIGHT);
+                        RenderLayer::getGuiTextured,
+                        entry.previewTexture,
+                        menuX + PADDING, entryY,
+                        0, 0,
+                        EMOTE_SIZE, EMOTE_HEIGHT,
+                        EMOTE_SIZE, EMOTE_HEIGHT);
             }
         }
 

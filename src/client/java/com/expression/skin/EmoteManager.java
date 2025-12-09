@@ -185,6 +185,9 @@ public class EmoteManager {
                 { 4, 1, 56, 42 }, // エモート4: マーカー[y=4,x=1], テクスチャ[56-63, 42-46]
         };
 
+        ExpressionMod.LOGGER
+                .info("[EmoteManager] Checking emote markers in skin " + skin.getWidth() + "x" + skin.getHeight());
+
         for (int i = 0; i < emoteMarkers.length; i++) {
             int markerY = emoteMarkers[i][0];
             int markerX = emoteMarkers[i][1];
@@ -192,6 +195,16 @@ public class EmoteManager {
             int srcY = emoteMarkers[i][3];
 
             int markerColor = skin.getColorArgb(markerX, markerY);
+            int alpha = (markerColor >> 24) & 0xFF;
+            int red = (markerColor >> 16) & 0xFF;
+            int green = (markerColor >> 8) & 0xFF;
+            int blue = markerColor & 0xFF;
+
+            ExpressionMod.LOGGER.info("[EmoteManager] Marker " + i + " at [y=" + markerY + ",x=" + markerX +
+                    "]: color=0x" + Integer.toHexString(markerColor) + " (A=" + alpha + ",R=" + red + ",G=" + green
+                    + ",B=" + blue +
+                    "), isCyan=" + isCyan(markerColor));
+
             if (isCyan(markerColor)) {
                 configs.add(new EmoteConfig(i, srcX, srcY, true));
                 ExpressionMod.LOGGER.info("[EmoteManager] Found emote marker " + i +
@@ -200,6 +213,7 @@ public class EmoteManager {
             }
         }
 
+        ExpressionMod.LOGGER.info("[EmoteManager] Total emotes found: " + configs.size());
         return configs;
     }
 

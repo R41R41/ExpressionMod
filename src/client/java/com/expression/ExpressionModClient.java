@@ -174,6 +174,9 @@ public class ExpressionModClient implements ClientModInitializer {
             Identifier skinTexture = client.player.getSkinTextures().texture();
             BlinkTextureManager.BlinkTextureData data = BlinkTextureManager.getOrCreate(skinTexture);
 
+            ExpressionMod.LOGGER.info("[ExpressionModClient] Ctrl+Click detected, data=" + data +
+                    ", hasAnyEmote=" + (data != null ? data.hasAnyEmote() : "null"));
+
             if (data != null && data.hasAnyEmote()) {
                 // スキン画像を読み込んでエモートメニューを開く
                 try {
@@ -181,6 +184,9 @@ public class ExpressionModClient implements ClientModInitializer {
                     if (cachedSkinImage != null) {
                         EmoteSelectionScreen.open(scaledMouseX, scaledMouseY, cachedSkinImage, data.emoteData);
                         emoteMenuOpened = true;
+                        // マウスカーソルを表示
+                        client.mouse.unlockCursor();
+                        ExpressionMod.LOGGER.info("[ExpressionModClient] Emote menu opened, cursor unlocked");
                     }
                 } catch (Exception e) {
                     ExpressionMod.LOGGER.error("[ExpressionModClient] Error opening emote menu", e);
@@ -197,6 +203,8 @@ public class ExpressionModClient implements ClientModInitializer {
         if (emoteMenuOpened && wasLeftMousePressed && !isLeftMousePressed) {
             EmoteSelectionScreen.close(true);
             emoteMenuOpened = false;
+            // カーソルをロック
+            client.mouse.lockCursor();
             if (cachedSkinImage != null) {
                 cachedSkinImage.close();
                 cachedSkinImage = null;
@@ -207,6 +215,8 @@ public class ExpressionModClient implements ClientModInitializer {
         if (emoteMenuOpened && !isCtrlPressed) {
             EmoteSelectionScreen.close(false);
             emoteMenuOpened = false;
+            // カーソルをロック
+            client.mouse.lockCursor();
             if (cachedSkinImage != null) {
                 cachedSkinImage.close();
                 cachedSkinImage = null;
