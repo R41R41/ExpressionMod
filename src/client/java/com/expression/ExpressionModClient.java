@@ -43,7 +43,7 @@ public class ExpressionModClient implements ClientModInitializer {
     private static KeyBinding reloadCacheKey;
 
     // エモート選択UI用
-    private static boolean wasLeftMousePressed = false;
+    private static boolean wasRightMousePressed = false;
     private static boolean emoteMenuOpened = false;
     private static NativeImage cachedSkinImage = null;
 
@@ -138,7 +138,7 @@ public class ExpressionModClient implements ClientModInitializer {
 
         ExpressionMod.LOGGER.info("Expression Mod Client initialized!");
         ExpressionMod.LOGGER.info("Emote keys: Numpad 1-6, Cache clear: Numpad 0");
-        ExpressionMod.LOGGER.info("Emote selection: Ctrl + Left Click");
+        ExpressionMod.LOGGER.info("Emote selection: Ctrl + Right Click");
     }
 
     /**
@@ -150,7 +150,7 @@ public class ExpressionModClient implements ClientModInitializer {
             if (EmoteSelectionScreen.isActive()) {
                 EmoteSelectionScreen.close(false);
                 emoteMenuOpened = false;
-                wasLeftMousePressed = false;
+                wasRightMousePressed = false;
             }
             return;
         }
@@ -158,8 +158,8 @@ public class ExpressionModClient implements ClientModInitializer {
         long windowHandle = client.getWindow().getHandle();
         boolean isCtrlPressed = GLFW.glfwGetKey(windowHandle, GLFW.GLFW_KEY_LEFT_CONTROL) == GLFW.GLFW_PRESS ||
                 GLFW.glfwGetKey(windowHandle, GLFW.GLFW_KEY_RIGHT_CONTROL) == GLFW.GLFW_PRESS;
-        boolean isLeftMousePressed = GLFW.glfwGetMouseButton(windowHandle,
-                GLFW.GLFW_MOUSE_BUTTON_LEFT) == GLFW.GLFW_PRESS;
+        boolean isRightMousePressed = GLFW.glfwGetMouseButton(windowHandle,
+                GLFW.GLFW_MOUSE_BUTTON_RIGHT) == GLFW.GLFW_PRESS;
 
         // マウス位置を取得
         double[] mouseX = new double[1];
@@ -168,8 +168,8 @@ public class ExpressionModClient implements ClientModInitializer {
         int scaledMouseX = (int) (mouseX[0] * client.getWindow().getScaledWidth() / client.getWindow().getWidth());
         int scaledMouseY = (int) (mouseY[0] * client.getWindow().getScaledHeight() / client.getWindow().getHeight());
 
-        // Ctrl + 左クリック開始でメニューを開く
-        if (isCtrlPressed && isLeftMousePressed && !wasLeftMousePressed && !emoteMenuOpened) {
+        // Ctrl + 右クリック開始でメニューを開く
+        if (isCtrlPressed && isRightMousePressed && !wasRightMousePressed && !emoteMenuOpened) {
             // スキンテクスチャからエモートデータを取得
             Identifier skinTexture = client.player.getSkinTextures().texture();
             BlinkTextureManager.BlinkTextureData data = BlinkTextureManager.getOrCreate(skinTexture);
@@ -199,8 +199,8 @@ public class ExpressionModClient implements ClientModInitializer {
             EmoteSelectionScreen.updateMousePosition(scaledMouseX, scaledMouseY);
         }
 
-        // 左クリックを離したらメニューを閉じて選択確定
-        if (emoteMenuOpened && wasLeftMousePressed && !isLeftMousePressed) {
+        // 右クリックを離したらメニューを閉じて選択確定
+        if (emoteMenuOpened && wasRightMousePressed && !isRightMousePressed) {
             EmoteSelectionScreen.close(true);
             emoteMenuOpened = false;
             // カーソルをロック
@@ -223,7 +223,7 @@ public class ExpressionModClient implements ClientModInitializer {
             }
         }
 
-        wasLeftMousePressed = isLeftMousePressed;
+        wasRightMousePressed = isRightMousePressed;
     }
 
     /**
@@ -285,6 +285,22 @@ public class ExpressionModClient implements ClientModInitializer {
         if (client.player == null)
             return;
 
+        // F3（デバッグ）キーが押されている場合はエモートキーを処理しない
+        // F3+数字キーはMinecraftのデバッグショートカットと競合するため
+        long windowHandle = client.getWindow().getHandle();
+        boolean isF3Pressed = GLFW.glfwGetKey(windowHandle, GLFW.GLFW_KEY_F3) == GLFW.GLFW_PRESS;
+        if (isF3Pressed) {
+            // wasPressed() を消費して、F3リリース後に誤発動しないようにする
+            while (smileKey.wasPressed()) {}
+            while (angryKey.wasPressed()) {}
+            while (sadKey.wasPressed()) {}
+            while (surprisedKey.wasPressed()) {}
+            while (thinkKey.wasPressed()) {}
+            while (shyKey.wasPressed()) {}
+            while (reloadCacheKey.wasPressed()) {}
+            return;
+        }
+
         EmoteType emote = null;
 
         while (smileKey.wasPressed()) {
@@ -330,11 +346,6 @@ public class ExpressionModClient implements ClientModInitializer {
             ClientNetworkHandler.sendEmoteChange(emote, EmoteState.DEFAULT_DURATION_MS);
 
             ExpressionMod.LOGGER.info("Emote triggered: " + emote.getId());
-
-            // フィードバック
-            client.player.sendMessage(
-                    net.minecraft.text.Text.literal("§e[ExpressionMod] " + emote.getId()),
-                    true);
         }
     }
 }
