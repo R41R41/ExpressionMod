@@ -1,6 +1,5 @@
 package com.expression.skin;
 
-import com.expression.ExpressionMod;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.entity.effect.StatusEffects;

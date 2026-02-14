@@ -2,9 +2,6 @@ package com.expression.render;
 
 import com.expression.skin.BlinkController;
 import com.expression.skin.EyelidTextureData;
-import com.expression.skin.SkinRegions;
-import com.mojang.blaze3d.systems.RenderSystem;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.OverlayTexture;
 import net.minecraft.client.render.RenderLayers;
 import net.minecraft.client.render.VertexConsumer;

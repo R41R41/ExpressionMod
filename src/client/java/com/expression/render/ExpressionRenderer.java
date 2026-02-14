@@ -1,13 +1,11 @@
 package com.expression.render;
 
-import com.expression.ExpressionMod;
 import com.expression.skin.BlinkController;
 import com.expression.skin.EyelidTextureData;
 import com.expression.state.ExpressionState;
 import com.expression.state.ExpressionStateManager;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.Identifier;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
 

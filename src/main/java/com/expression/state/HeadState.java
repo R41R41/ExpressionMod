@@ -1,7 +1,5 @@
 package com.expression.state;
 
-import net.minecraft.util.math.Vec3d;
-
 /**
  * 頭部の状態を管理するクラス
  * 目に遅れてターゲット方向へ追従する
