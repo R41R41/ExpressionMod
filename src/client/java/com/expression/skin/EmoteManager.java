@@ -274,7 +274,7 @@ public class EmoteManager {
      */
     private static void registerTexture(Identifier id, NativeImage image) {
         try {
-            NativeImageBackedTexture texture = new NativeImageBackedTexture(image);
+            NativeImageBackedTexture texture = new NativeImageBackedTexture(() -> "expressionmod_emote", image);
             MinecraftClient.getInstance().getTextureManager().registerTexture(id, texture);
         } catch (Exception e) {
             ExpressionMod.LOGGER.error("[EmoteManager] Failed to register texture: " + id, e);

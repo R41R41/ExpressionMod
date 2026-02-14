@@ -6,7 +6,7 @@ import com.expression.skin.EyelidTextureData;
 import com.expression.skin.SkinRegions;
 import net.minecraft.client.model.ModelPart;
 import net.minecraft.client.render.OverlayTexture;
-import net.minecraft.client.render.RenderLayer;
+import net.minecraft.client.render.RenderLayers;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.entity.state.PlayerEntityRenderState;
@@ -35,7 +35,7 @@ public class EyelidOverlayRenderer {
     public static void renderWithHeadTransform(PlayerEntityRenderState state, MatrixStack matrices,
             VertexConsumerProvider vertexConsumers, int light, ModelPart headPart) {
 
-        Identifier skinTexture = state.skinTextures.texture();
+        Identifier skinTexture = state.skinTextures.body().texturePath();
         EyelidTextureData data = EyelidTextureData.getBySkinTexture(skinTexture);
 
         if (!loggedOnce) {
@@ -68,7 +68,10 @@ public class EyelidOverlayRenderer {
 
         // 頭部のModelPartの変換を適用
         // これにより頭の回転・傾きに追従する
-        headPart.rotate(matrices);
+        // 頭部の変換を適用（ModelPartの回転値を使用）
+        matrices.multiply(net.minecraft.util.math.RotationAxis.POSITIVE_X.rotationDegrees(headPart.pitch * (180F / (float)Math.PI)));
+        matrices.multiply(net.minecraft.util.math.RotationAxis.POSITIVE_Y.rotationDegrees(headPart.yaw * (180F / (float)Math.PI)));
+        matrices.multiply(net.minecraft.util.math.RotationAxis.POSITIVE_Z.rotationDegrees(headPart.roll * (180F / (float)Math.PI)));
 
         // 顔の前面に移動（頭の中心から前方へ）
         // 頭のサイズは8ピクセル、その半分 + 少しオフセット
@@ -105,7 +108,7 @@ public class EyelidOverlayRenderer {
     public static void renderWithRotation(PlayerEntityRenderState state, MatrixStack matrices,
             VertexConsumerProvider vertexConsumers, int light) {
 
-        Identifier skinTexture = state.skinTextures.texture();
+        Identifier skinTexture = state.skinTextures.body().texturePath();
 
         // スキンIDで検索
         EyelidTextureData data = EyelidTextureData.getBySkinTexture(skinTexture);
@@ -150,7 +153,7 @@ public class EyelidOverlayRenderer {
         matrices.translate(0, 1.5f, 0);
 
         // 頭部の回転を適用（PlayerEntityRenderStateから取得）
-        float yaw = state.yawDegrees;
+        float yaw = state.bodyYaw;
         float pitch = state.pitch;
 
         // まずY軸回転（左右を向く）
@@ -188,7 +191,7 @@ public class EyelidOverlayRenderer {
      */
     private static void renderSkinBackground(MatrixStack matrices, VertexConsumerProvider vertexConsumers,
             int light, Identifier texture, float topY, float height, float zOffset) {
-        VertexConsumer buffer = vertexConsumers.getBuffer(RenderLayer.getEntityTranslucent(texture));
+        VertexConsumer buffer = vertexConsumers.getBuffer(RenderLayers.entityTranslucent(texture));
         Matrix4f posMatrix = matrices.peek().getPositionMatrix();
 
         float width = SkinRegions.SKIN_WIDTH * PIXEL_SIZE;
@@ -206,7 +209,7 @@ public class EyelidOverlayRenderer {
      */
     private static void renderEye(MatrixStack matrices, VertexConsumerProvider vertexConsumers,
             int light, Identifier texture, float topY, float visibleHeight, float zOffset) {
-        VertexConsumer buffer = vertexConsumers.getBuffer(RenderLayer.getEntityTranslucent(texture));
+        VertexConsumer buffer = vertexConsumers.getBuffer(RenderLayers.entityTranslucent(texture));
         Matrix4f posMatrix = matrices.peek().getPositionMatrix();
 
         float width = SkinRegions.EYE_WIDTH * PIXEL_SIZE;
@@ -225,7 +228,7 @@ public class EyelidOverlayRenderer {
      */
     private static void renderEyelash(MatrixStack matrices, VertexConsumerProvider vertexConsumers,
             int light, Identifier texture, float topY, float zOffset) {
-        VertexConsumer buffer = vertexConsumers.getBuffer(RenderLayer.getEntityTranslucent(texture));
+        VertexConsumer buffer = vertexConsumers.getBuffer(RenderLayers.entityTranslucent(texture));
         Matrix4f posMatrix = matrices.peek().getPositionMatrix();
 
         float width = SkinRegions.EYELASH_WIDTH * PIXEL_SIZE;

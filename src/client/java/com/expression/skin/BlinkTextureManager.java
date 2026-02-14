@@ -552,7 +552,7 @@ public class BlinkTextureManager {
      */
     private static void registerTexture(Identifier id, NativeImage image) {
         try {
-            NativeImageBackedTexture texture = new NativeImageBackedTexture(image);
+            NativeImageBackedTexture texture = new NativeImageBackedTexture(() -> "expressionmod_blink", image);
             MinecraftClient.getInstance().getTextureManager().registerTexture(id, texture);
         } catch (Exception e) {
             ExpressionMod.LOGGER.error("[BlinkTextureManager] Failed to register texture: " + id, e);

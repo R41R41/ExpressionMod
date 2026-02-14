@@ -6,7 +6,7 @@ import com.expression.skin.EmoteManager.EmoteTextureData;
 import com.expression.network.ClientNetworkHandler;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.render.RenderLayer;
+import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.texture.NativeImageBackedTexture;
 import net.minecraft.util.Identifier;
@@ -14,7 +14,6 @@ import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
 
 /**
  * エモート選択UI
@@ -72,7 +71,7 @@ public class EmoteSelectionScreen {
                     Identifier previewId = Identifier.of(ExpressionMod.MOD_ID,
                             "emote_preview_" + System.currentTimeMillis() + "_" + i);
                     try {
-                        NativeImageBackedTexture texture = new NativeImageBackedTexture(preview);
+                        NativeImageBackedTexture texture = new NativeImageBackedTexture(() -> "expressionmod_preview", preview);
                         MinecraftClient.getInstance().getTextureManager().registerTexture(previewId, texture);
                         previewTextures.add(previewId);
                         availableEmotes.add(new EmoteEntry(i, previewId, currentY));
@@ -199,7 +198,7 @@ public class EmoteSelectionScreen {
             // プレビュー画像（8x5を拡大して描画）
             if (entry.previewTexture != null) {
                 context.drawTexture(
-                        RenderLayer::getGuiTextured,
+                        RenderPipelines.GUI_TEXTURED,
                         entry.previewTexture,
                         menuX + PADDING, entryY,
                         0, 0,
@@ -209,7 +208,7 @@ public class EmoteSelectionScreen {
         }
 
         // 枠線
-        context.drawBorder(menuX, menuY, menuWidth, menuHeight, 0xFFFFFFFF);
+        context.drawStrokedRectangle(menuX, menuY, menuWidth, menuHeight, 0xFFFFFFFF);
     }
 
     /**

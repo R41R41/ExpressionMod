@@ -5,7 +5,10 @@ import com.expression.skin.EyelidTextureData;
 import com.expression.skin.SkinRegions;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.*;
+import net.minecraft.client.render.OverlayTexture;
+import net.minecraft.client.render.RenderLayers;
+import net.minecraft.client.render.VertexConsumer;
+import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.Identifier;
@@ -90,7 +93,7 @@ public class EyelidRenderer {
      */
     private static void renderSkinBackground(MatrixStack matrices, VertexConsumerProvider vertexConsumers,
             int light, Identifier texture, float yOffset, float height) {
-        VertexConsumer buffer = vertexConsumers.getBuffer(RenderLayer.getEntityCutout(texture));
+        VertexConsumer buffer = vertexConsumers.getBuffer(RenderLayers.entityCutout(texture));
         Matrix4f matrix = matrices.peek().getPositionMatrix();
 
         float width = 8.0f * PIXEL_SIZE;
@@ -115,7 +118,7 @@ public class EyelidRenderer {
      */
     private static void renderEye(MatrixStack matrices, VertexConsumerProvider vertexConsumers,
             int light, Identifier texture, float yOffset, float visibleHeight) {
-        VertexConsumer buffer = vertexConsumers.getBuffer(RenderLayer.getEntityCutout(texture));
+        VertexConsumer buffer = vertexConsumers.getBuffer(RenderLayers.entityCutout(texture));
         Matrix4f matrix = matrices.peek().getPositionMatrix();
 
         float width = 8.0f * PIXEL_SIZE;
@@ -143,7 +146,7 @@ public class EyelidRenderer {
      */
     private static void renderEyelash(MatrixStack matrices, VertexConsumerProvider vertexConsumers,
             int light, Identifier texture, float yOffset) {
-        VertexConsumer buffer = vertexConsumers.getBuffer(RenderLayer.getEntityCutout(texture));
+        VertexConsumer buffer = vertexConsumers.getBuffer(RenderLayers.entityCutout(texture));
         Matrix4f matrix = matrices.peek().getPositionMatrix();
 
         float width = 8.0f * PIXEL_SIZE;

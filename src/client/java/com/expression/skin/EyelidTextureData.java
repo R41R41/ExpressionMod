@@ -210,7 +210,7 @@ public class EyelidTextureData {
     private static Identifier registerTexture(String name, NativeImage image) {
         try {
             Identifier id = Identifier.of(ExpressionMod.MOD_ID, name);
-            NativeImageBackedTexture texture = new NativeImageBackedTexture(image);
+            NativeImageBackedTexture texture = new NativeImageBackedTexture(() -> "expressionmod_eyelid", image);
             MinecraftClient.getInstance().getTextureManager().registerTexture(id, texture);
             return id;
         } catch (Exception e) {

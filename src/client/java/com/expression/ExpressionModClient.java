@@ -16,7 +16,8 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.client.option.KeyBinding;
@@ -50,47 +51,50 @@ public class ExpressionModClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         // キーバインド登録 - Numpad 1-6 を使用
+        KeyBinding.Category emoteCategory = new KeyBinding.Category(
+                Identifier.of(ExpressionMod.MOD_ID, "emotes"));
+
         smileKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.expressionmod.smile",
                 InputUtil.Type.KEYSYM,
                 GLFW.GLFW_KEY_KP_1, // Numpad 1
-                "category.expressionmod.emotes"));
+                emoteCategory));
 
         angryKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.expressionmod.angry",
                 InputUtil.Type.KEYSYM,
                 GLFW.GLFW_KEY_KP_2, // Numpad 2
-                "category.expressionmod.emotes"));
+                emoteCategory));
 
         sadKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.expressionmod.sad",
                 InputUtil.Type.KEYSYM,
                 GLFW.GLFW_KEY_KP_3, // Numpad 3
-                "category.expressionmod.emotes"));
+                emoteCategory));
 
         surprisedKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.expressionmod.surprised",
                 InputUtil.Type.KEYSYM,
                 GLFW.GLFW_KEY_KP_4, // Numpad 4
-                "category.expressionmod.emotes"));
+                emoteCategory));
 
         thinkKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.expressionmod.think",
                 InputUtil.Type.KEYSYM,
                 GLFW.GLFW_KEY_KP_5, // Numpad 5
-                "category.expressionmod.emotes"));
+                emoteCategory));
 
         shyKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.expressionmod.shy",
                 InputUtil.Type.KEYSYM,
                 GLFW.GLFW_KEY_KP_6, // Numpad 6
-                "category.expressionmod.emotes"));
+                emoteCategory));
 
         reloadCacheKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.expressionmod.reload_cache",
                 InputUtil.Type.KEYSYM,
                 GLFW.GLFW_KEY_KP_0, // Numpad 0
-                "category.expressionmod.emotes"));
+                emoteCategory));
 
         // クライアントtickイベント - 目の状態を更新
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
@@ -119,9 +123,11 @@ public class ExpressionModClient implements ClientModInitializer {
         });
 
         // HUD描画イベント - エモート選択UIを描画
-        HudRenderCallback.EVENT.register((context, tickDelta) -> {
-            EmoteSelectionScreen.render(context);
-        });
+        HudElementRegistry.attachElementAfter(
+                VanillaHudElements.MISC_OVERLAYS,
+                Identifier.of(ExpressionMod.MOD_ID, "emote_selection"),
+                (context, tickDelta) -> EmoteSelectionScreen.render(context)
+        );
 
         // クライアントネットワークハンドラー登録
         ClientNetworkHandler.registerClientReceivers();
@@ -171,7 +177,7 @@ public class ExpressionModClient implements ClientModInitializer {
         // Ctrl + 右クリック開始でメニューを開く
         if (isCtrlPressed && isRightMousePressed && !wasRightMousePressed && !emoteMenuOpened) {
             // スキンテクスチャからエモートデータを取得
-            Identifier skinTexture = client.player.getSkinTextures().texture();
+            Identifier skinTexture = client.getNetworkHandler().getPlayerListEntry(client.player.getUuid()).getSkinTextures().body().texturePath();
             BlinkTextureManager.BlinkTextureData data = BlinkTextureManager.getOrCreate(skinTexture);
 
             ExpressionMod.LOGGER.info("[ExpressionModClient] Ctrl+Click detected, data=" + data +
@@ -270,7 +276,9 @@ public class ExpressionModClient implements ClientModInitializer {
 
             // スキンテクスチャからまぶたデータを初期化（一度だけ）
             if (EyelidTextureData.get(playerUuid) == null) {
-                var skinTexture = player.getSkinTextures().texture();
+                var entry = MinecraftClient.getInstance().getNetworkHandler().getPlayerListEntry(player.getUuid());
+                if (entry == null) return;
+                var skinTexture = entry.getSkinTextures().body().texturePath();
                 EyelidTextureData.getOrCreate(playerUuid, skinTexture);
             }
         } catch (Exception e) {

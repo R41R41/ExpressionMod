@@ -20,3 +20,6 @@ Thumbs.db
 
 # Misc
 *.log
+
+# Compiled classes
+bin/

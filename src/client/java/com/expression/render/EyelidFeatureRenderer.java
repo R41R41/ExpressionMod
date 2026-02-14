@@ -5,9 +5,9 @@ import com.expression.skin.BlinkController;
 import com.expression.skin.EyelidTextureData;
 import com.expression.skin.SkinRegions;
 import net.minecraft.client.render.OverlayTexture;
-import net.minecraft.client.render.RenderLayer;
+import net.minecraft.client.render.RenderLayers;
 import net.minecraft.client.render.VertexConsumer;
-import net.minecraft.client.render.VertexConsumerProvider;
+import net.minecraft.client.render.command.OrderedRenderCommandQueue;
 import net.minecraft.client.render.entity.feature.FeatureRenderer;
 import net.minecraft.client.render.entity.feature.FeatureRendererContext;
 import net.minecraft.client.render.entity.model.PlayerEntityModel;
@@ -37,23 +37,18 @@ public class EyelidFeatureRenderer extends FeatureRenderer<PlayerEntityRenderSta
     }
 
     @Override
-    public void render(MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light,
+    public void render(MatrixStack matrices, OrderedRenderCommandQueue queue, int light,
             PlayerEntityRenderState state, float limbAngle, float limbDistance) {
-        // プレイヤーのUUIDを取得（RenderStateから直接取得できない場合はキャッシュを使用）
-        // 注意: 1.21.4ではPlayerEntityRenderStateにUUIDが含まれていない可能性がある
-        // その場合はskinTextureから推測するか、別のアプローチが必要
+        Identifier skinTexture = state.skinTextures.body().texturePath();
 
-        Identifier skinTexture = state.skinTextures.texture();
-
-        // スキンテクスチャからUUIDを逆引きするのは難しいため、
-        // EyelidTextureDataのキャッシュからテクスチャが一致するものを探す
+        // スキンテクスチャからEyelidTextureDataを検索
         EyelidTextureData data = findDataBySkinTexture(skinTexture);
         if (data == null || !data.hasFeatures) {
             return;
         }
 
         UUID playerUuid = data.playerUuid;
-        float tickDelta = 0.0f; // state.tickDeltaが利用可能ならそれを使用
+        float tickDelta = 0.0f;
 
         // まつ毛のオフセットを取得
         float eyelidOffset = BlinkController.getEyelidOffset(playerUuid, tickDelta);
@@ -63,37 +58,31 @@ public class EyelidFeatureRenderer extends FeatureRenderer<PlayerEntityRenderSta
 
         matrices.push();
 
-        // 頭部の変換に合わせる
-        // 注意: PlayerEntityModelの頭部は (0,0,0) を中心としている
-        // 顔の前面は Z = HEAD_SIZE/2 の位置
-
         // 顔の前面に移動
         matrices.translate(0, 0, HEAD_SIZE / 2 + LAYER_OFFSET);
 
-        // 目の位置を計算（顔の中心からのオフセット）
+        // 目の位置を計算
         int eyeY = data.eyeYPosition;
-        // 顔の上端 = HEAD_SIZE/2、下端 = -HEAD_SIZE/2
-        // 目のY位置 = 上端 - (eyeY * PIXEL_SIZE)
         float eyeYOffset = eyeY * PIXEL_SIZE;
 
         // レンダリング
         if (data.skinTexture != null && eyelidOffset > 0) {
             // 肌色背景を描画（まつ毛が下がった時に見える部分）
-            renderQuad(matrices, vertexConsumers, light, data.skinTexture,
+            renderQuad(matrices, queue, light, data.skinTexture,
                     eyeYOffset, eyelidOffset * PIXEL_SIZE,
                     SkinRegions.SKIN_WIDTH * PIXEL_SIZE, LAYER_OFFSET);
         }
 
         if (data.eyeTexture != null && visibleEyeHeight > 0) {
             // 目を描画（可視部分のみ）
-            renderEye(matrices, vertexConsumers, light, data.eyeTexture,
+            renderEye(matrices, queue, light, data.eyeTexture,
                     eyeYOffset + eyelidOffset * PIXEL_SIZE, visibleEyeHeight,
                     SkinRegions.EYE_WIDTH * PIXEL_SIZE, LAYER_OFFSET * 2);
         }
 
         if (data.eyelashTexture != null) {
             // まつ毛を描画（移動後の位置）
-            renderQuad(matrices, vertexConsumers, light, data.eyelashTexture,
+            renderQuad(matrices, queue, light, data.eyelashTexture,
                     eyeYOffset + eyelidOffset * PIXEL_SIZE, PIXEL_SIZE,
                     SkinRegions.EYELASH_WIDTH * PIXEL_SIZE, LAYER_OFFSET * 3);
         }
@@ -109,56 +98,57 @@ public class EyelidFeatureRenderer extends FeatureRenderer<PlayerEntityRenderSta
     }
 
     /**
-     * 四角形を描画
+     * 四角形を描画（submitCustom使用）
      */
-    private void renderQuad(MatrixStack matrices, VertexConsumerProvider vertexConsumers,
+    private void renderQuad(MatrixStack matrices, OrderedRenderCommandQueue queue,
             int light, Identifier texture, float yOffset, float height,
             float width, float zOffset) {
-        VertexConsumer buffer = vertexConsumers.getBuffer(RenderLayer.getEntityCutoutNoCull(texture));
-        Matrix4f matrix = matrices.peek().getPositionMatrix();
+        final float x1 = -width / 2;
+        final float x2 = width / 2;
+        final float y1 = HEAD_SIZE / 2 - yOffset;
+        final float y2 = y1 - height;
+        final float z = zOffset;
+        final int lightFinal = light;
 
-        float x1 = -width / 2;
-        float x2 = width / 2;
-        float y1 = HEAD_SIZE / 2 - yOffset;
-        float y2 = y1 - height;
-        float z = zOffset;
-
-        buffer.vertex(matrix, x1, y1, z).color(255, 255, 255, 255)
-                .texture(0, 0).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(0, 0, 1);
-        buffer.vertex(matrix, x1, y2, z).color(255, 255, 255, 255)
-                .texture(0, 1).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(0, 0, 1);
-        buffer.vertex(matrix, x2, y2, z).color(255, 255, 255, 255)
-                .texture(1, 1).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(0, 0, 1);
-        buffer.vertex(matrix, x2, y1, z).color(255, 255, 255, 255)
-                .texture(1, 0).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(0, 0, 1);
+        queue.submitCustom(matrices, RenderLayers.entityCutoutNoCull(texture),
+                (entry, buffer) -> {
+                    Matrix4f matrix = entry.getPositionMatrix();
+                    buffer.vertex(matrix, x1, y1, z).color(255, 255, 255, 255)
+                            .texture(0, 0).overlay(OverlayTexture.DEFAULT_UV).light(lightFinal).normal(entry, 0, 0, 1);
+                    buffer.vertex(matrix, x1, y2, z).color(255, 255, 255, 255)
+                            .texture(0, 1).overlay(OverlayTexture.DEFAULT_UV).light(lightFinal).normal(entry, 0, 0, 1);
+                    buffer.vertex(matrix, x2, y2, z).color(255, 255, 255, 255)
+                            .texture(1, 1).overlay(OverlayTexture.DEFAULT_UV).light(lightFinal).normal(entry, 0, 0, 1);
+                    buffer.vertex(matrix, x2, y1, z).color(255, 255, 255, 255)
+                            .texture(1, 0).overlay(OverlayTexture.DEFAULT_UV).light(lightFinal).normal(entry, 0, 0, 1);
+                });
     }
 
     /**
      * 目を描画（上部がカットされる）
      */
-    private void renderEye(MatrixStack matrices, VertexConsumerProvider vertexConsumers,
+    private void renderEye(MatrixStack matrices, OrderedRenderCommandQueue queue,
             int light, Identifier texture, float yOffset, float visibleHeight,
             float width, float zOffset) {
-        VertexConsumer buffer = vertexConsumers.getBuffer(RenderLayer.getEntityCutoutNoCull(texture));
-        Matrix4f matrix = matrices.peek().getPositionMatrix();
+        final float x1 = -width / 2;
+        final float x2 = width / 2;
+        final float y1 = HEAD_SIZE / 2 - yOffset;
+        final float y2 = y1 - visibleHeight * PIXEL_SIZE;
+        final float z = zOffset;
+        final float uvTop = 1.0f - (visibleHeight / SkinRegions.EYE_HEIGHT);
+        final int lightFinal = light;
 
-        float totalHeight = SkinRegions.EYE_HEIGHT * PIXEL_SIZE;
-        float x1 = -width / 2;
-        float x2 = width / 2;
-        float y1 = HEAD_SIZE / 2 - yOffset;
-        float y2 = y1 - visibleHeight * PIXEL_SIZE;
-        float z = zOffset;
-
-        // UVの上部をカット（見えない部分）
-        float uvTop = 1.0f - (visibleHeight / SkinRegions.EYE_HEIGHT);
-
-        buffer.vertex(matrix, x1, y1, z).color(255, 255, 255, 255)
-                .texture(0, uvTop).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(0, 0, 1);
-        buffer.vertex(matrix, x1, y2, z).color(255, 255, 255, 255)
-                .texture(0, 1).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(0, 0, 1);
-        buffer.vertex(matrix, x2, y2, z).color(255, 255, 255, 255)
-                .texture(1, 1).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(0, 0, 1);
-        buffer.vertex(matrix, x2, y1, z).color(255, 255, 255, 255)
-                .texture(1, uvTop).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(0, 0, 1);
+        queue.submitCustom(matrices, RenderLayers.entityCutoutNoCull(texture),
+                (entry, buffer) -> {
+                    Matrix4f matrix = entry.getPositionMatrix();
+                    buffer.vertex(matrix, x1, y1, z).color(255, 255, 255, 255)
+                            .texture(0, uvTop).overlay(OverlayTexture.DEFAULT_UV).light(lightFinal).normal(entry, 0, 0, 1);
+                    buffer.vertex(matrix, x1, y2, z).color(255, 255, 255, 255)
+                            .texture(0, 1).overlay(OverlayTexture.DEFAULT_UV).light(lightFinal).normal(entry, 0, 0, 1);
+                    buffer.vertex(matrix, x2, y2, z).color(255, 255, 255, 255)
+                            .texture(1, 1).overlay(OverlayTexture.DEFAULT_UV).light(lightFinal).normal(entry, 0, 0, 1);
+                    buffer.vertex(matrix, x2, y1, z).color(255, 255, 255, 255)
+                            .texture(1, uvTop).overlay(OverlayTexture.DEFAULT_UV).light(lightFinal).normal(entry, 0, 0, 1);
+                });
     }
 }
