@@ -588,8 +588,16 @@ public class BlinkTextureManager {
             if (emoteIndex >= 0 && emoteIndex < EmoteManager.MAX_EMOTES) {
                 if (data.emoteData.emoteEnabled[emoteIndex] && data.emoteData.emoteTextures[emoteIndex] != null) {
                     return data.emoteData.emoteTextures[emoteIndex];
+                } else {
+                    ExpressionMod.LOGGER.warn("[BlinkTextureManager] Emote " + emoteIndex + " texture missing: enabled=" +
+                            data.emoteData.emoteEnabled[emoteIndex] + ", texture=" + data.emoteData.emoteTextures[emoteIndex]);
                 }
             }
+        } else if (player != null && EmoteManager.isEmoting(player.getUuid())) {
+            ExpressionMod.LOGGER.warn("[BlinkTextureManager] Emote active but check failed: player=" +
+                    (player != null ? player.getName().getString() : "null") +
+                    ", emoteData=" + (data.emoteData != null ? "exists(count=" + data.emoteData.emoteCount + ")" : "null") +
+                    ", skin=" + originalSkin);
         }
 
         // まばたき機能がない場合は元のスキンを使用
