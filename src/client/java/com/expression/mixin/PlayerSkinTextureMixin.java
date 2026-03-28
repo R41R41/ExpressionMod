@@ -2,18 +2,18 @@ package com.expression.mixin;
 
 import com.expression.ExpressionMod;
 import com.expression.skin.BlinkTextureManager;
-import net.minecraft.client.render.RenderLayers;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.resources.Identifier;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 
 /**
- * RenderLayersでスキンテクスチャを目の状態に応じたテクスチャに差し替えるMixin
- * 1.21.11: RenderLayer → RenderLayers に移動対応
+ * RenderTypesでスキンテクスチャを目の状態に応じたテクスチャに差し替えるMixin
+ * 26.1: RenderType → RenderTypes (net.minecraft.client.renderer.rendertype.RenderTypes)
  */
-@Mixin(RenderLayers.class)
+@Mixin(RenderTypes.class)
 public class PlayerSkinTextureMixin {
 
     @Unique
@@ -22,11 +22,8 @@ public class PlayerSkinTextureMixin {
     @Unique
     private static Identifier lastEyeTexture = null;
 
-    /**
-     * entityTranslucentでテクスチャIDを差し替え
-     */
     @ModifyVariable(
-            method = "entityTranslucent(Lnet/minecraft/util/Identifier;)Lnet/minecraft/client/render/RenderLayer;",
+            method = "entityTranslucent(Lnet/minecraft/resources/Identifier;)Lnet/minecraft/client/renderer/rendertype/RenderType;",
             at = @At("HEAD"),
             argsOnly = true
     )
@@ -34,11 +31,8 @@ public class PlayerSkinTextureMixin {
         return replaceWithEyeTexture(texture, "Translucent");
     }
 
-    /**
-     * entitySolidでテクスチャIDを差し替え
-     */
     @ModifyVariable(
-            method = "entitySolid(Lnet/minecraft/util/Identifier;)Lnet/minecraft/client/render/RenderLayer;",
+            method = "entitySolid(Lnet/minecraft/resources/Identifier;)Lnet/minecraft/client/renderer/rendertype/RenderType;",
             at = @At("HEAD"),
             argsOnly = true
     )
@@ -46,9 +40,6 @@ public class PlayerSkinTextureMixin {
         return replaceWithEyeTexture(texture, "Solid");
     }
 
-    /**
-     * スキンテクスチャを目の状態に応じたテクスチャに差し替える
-     */
     @Unique
     private static Identifier replaceWithEyeTexture(Identifier texture, String type) {
         String path = texture.getPath();

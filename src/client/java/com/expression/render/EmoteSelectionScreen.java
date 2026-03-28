@@ -4,12 +4,12 @@ import com.expression.ExpressionMod;
 import com.expression.skin.EmoteManager;
 import com.expression.skin.EmoteManager.EmoteTextureData;
 import com.expression.network.ClientNetworkHandler;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gl.RenderPipelines;
-import net.minecraft.client.texture.NativeImage;
-import net.minecraft.client.texture.NativeImageBackedTexture;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.renderer.RenderPipelines;
+import com.mojang.blaze3d.platform.NativeImage;
+import net.minecraft.client.renderer.texture.DynamicTexture;
+import net.minecraft.resources.Identifier;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,17 +28,16 @@ public class EmoteSelectionScreen {
     private static NativeImage currentSkinImage = null;
     private static final List<Identifier> previewTextures = new ArrayList<>();
 
-    // UI設定
-    private static final int EMOTE_SIZE = 32; // 8x5を4倍に拡大
-    private static final int EMOTE_HEIGHT = 20; // 5ピクセル * 4
+    private static final int EMOTE_SIZE = 32;
+    private static final int EMOTE_HEIGHT = 20;
     private static final int PADDING = 4;
-    private static final int HIGHLIGHT_COLOR = 0x80FFFFFF; // 半透明白
-    private static final int BACKGROUND_COLOR = 0xC0000000; // 半透明黒
+    private static final int HIGHLIGHT_COLOR = 0x80FFFFFF;
+    private static final int BACKGROUND_COLOR = 0xC0000000;
 
     public static class EmoteEntry {
         public final int index;
         public final Identifier previewTexture;
-        public final int y; // メニュー内でのY位置
+        public final int y;
 
         public EmoteEntry(int index, Identifier previewTexture, int y) {
             this.index = index;
@@ -47,9 +46,6 @@ public class EmoteSelectionScreen {
         }
     }
 
-    /**
-     * エモートメニューを開く
-     */
     public static void open(int mouseX, int mouseY, NativeImage skinImage, EmoteTextureData emoteData) {
         if (emoteData == null || !emoteData.hasAnyEmote()) {
             return;
@@ -60,18 +56,16 @@ public class EmoteSelectionScreen {
         availableEmotes.clear();
         clearPreviewTextures();
 
-        // 有効なエモートを収集
         int currentY = PADDING;
         for (int i = 0; i < EmoteManager.MAX_EMOTES; i++) {
             if (emoteData.emoteEnabled[i]) {
-                // プレビューテクスチャを作成
                 NativeImage preview = EmoteManager.getEmotePreviewImage(skinImage, i);
                 if (preview != null) {
-                    Identifier previewId = Identifier.of(ExpressionMod.MOD_ID,
+                    Identifier previewId = Identifier.fromNamespaceAndPath(ExpressionMod.MOD_ID,
                             "emote_preview_" + System.currentTimeMillis() + "_" + i);
                     try {
-                        NativeImageBackedTexture texture = new NativeImageBackedTexture(() -> "expressionmod_preview", preview);
-                        MinecraftClient.getInstance().getTextureManager().registerTexture(previewId, texture);
+                        DynamicTexture texture = new DynamicTexture(() -> "emote_icon", preview);
+                        Minecraft.getInstance().getTextureManager().register(previewId, texture);
                         previewTextures.add(previewId);
                         availableEmotes.add(new EmoteEntry(i, previewId, currentY));
                         currentY += EMOTE_HEIGHT + PADDING;
@@ -87,13 +81,11 @@ public class EmoteSelectionScreen {
             return;
         }
 
-        // メニュー位置を計算（カーソルの右か左）
-        MinecraftClient client = MinecraftClient.getInstance();
-        int screenWidth = client.getWindow().getScaledWidth();
+        Minecraft client = Minecraft.getInstance();
+        int screenWidth = client.getWindow().getGuiScaledWidth();
         int menuWidth = EMOTE_SIZE + PADDING * 2;
         int menuHeight = currentY;
 
-        // 右側に十分なスペースがあれば右に、なければ左に
         if (mouseX + menuWidth + 10 < screenWidth) {
             menuX = mouseX + 10;
         } else {
@@ -101,8 +93,7 @@ public class EmoteSelectionScreen {
         }
         menuY = mouseY - menuHeight / 2;
 
-        // 画面外にならないよう調整
-        int screenHeight = client.getWindow().getScaledHeight();
+        int screenHeight = client.getWindow().getGuiScaledHeight();
         if (menuY < 0)
             menuY = 0;
         if (menuY + menuHeight > screenHeight)
@@ -112,19 +103,14 @@ public class EmoteSelectionScreen {
         ExpressionMod.LOGGER.info("[EmoteSelectionScreen] Opened with " + availableEmotes.size() + " emotes");
     }
 
-    /**
-     * エモートメニューを閉じる
-     */
     public static void close(boolean selectHovered) {
         if (!isActive)
             return;
 
         if (selectHovered && hoveredEmote >= 0) {
-            // 選択されたエモートを適用
-            MinecraftClient client = MinecraftClient.getInstance();
+            Minecraft client = Minecraft.getInstance();
             if (client.player != null) {
-                EmoteManager.startEmote(client.player.getUuid(), hoveredEmote);
-                // サーバーに同期
+                EmoteManager.startEmote(client.player.getUUID(), hoveredEmote);
                 ClientNetworkHandler.sendEmoteSync(hoveredEmote);
                 ExpressionMod.LOGGER.info("[EmoteSelectionScreen] Selected emote " + hoveredEmote);
             }
@@ -137,20 +123,15 @@ public class EmoteSelectionScreen {
         currentSkinImage = null;
     }
 
-    /**
-     * プレビューテクスチャをクリア
-     */
     private static void clearPreviewTextures() {
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         for (Identifier id : previewTextures) {
-            client.getTextureManager().destroyTexture(id);
+            // TODO: Verify texture cleanup method for 26.1 Mojang (was: destroyTexture)
+            client.getTextureManager().release(id);
         }
         previewTextures.clear();
     }
 
-    /**
-     * マウス移動時の更新
-     */
     public static void updateMousePosition(int mouseX, int mouseY) {
         if (!isActive)
             return;
@@ -172,31 +153,24 @@ public class EmoteSelectionScreen {
         }
     }
 
-    /**
-     * メニューを描画
-     */
-    public static void render(DrawContext context) {
+    public static void render(GuiGraphicsExtractor guiGraphics) {
         if (!isActive || availableEmotes.isEmpty())
             return;
 
         int menuWidth = EMOTE_SIZE + PADDING * 2;
         int menuHeight = availableEmotes.size() * (EMOTE_HEIGHT + PADDING) + PADDING;
 
-        // 背景
-        context.fill(menuX, menuY, menuX + menuWidth, menuY + menuHeight, BACKGROUND_COLOR);
+        guiGraphics.fill(menuX, menuY, menuX + menuWidth, menuY + menuHeight, BACKGROUND_COLOR);
 
-        // 各エモートを描画
         for (EmoteEntry entry : availableEmotes) {
             int entryY = menuY + entry.y;
 
-            // ハイライト
             if (entry.index == hoveredEmote) {
-                context.fill(menuX, entryY, menuX + menuWidth, entryY + EMOTE_HEIGHT, HIGHLIGHT_COLOR);
+                guiGraphics.fill(menuX, entryY, menuX + menuWidth, entryY + EMOTE_HEIGHT, HIGHLIGHT_COLOR);
             }
 
-            // プレビュー画像（8x5を拡大して描画）
             if (entry.previewTexture != null) {
-                context.drawTexture(
+                guiGraphics.blit(
                         RenderPipelines.GUI_TEXTURED,
                         entry.previewTexture,
                         menuX + PADDING, entryY,
@@ -206,20 +180,18 @@ public class EmoteSelectionScreen {
             }
         }
 
-        // 枠線
-        context.drawStrokedRectangle(menuX, menuY, menuWidth, menuHeight, 0xFFFFFFFF);
+        // Border (replacing drawStrokedRectangle which may not exist in 26.1)
+        int borderColor = 0xFFFFFFFF;
+        guiGraphics.fill(menuX, menuY, menuX + menuWidth, menuY + 1, borderColor);
+        guiGraphics.fill(menuX, menuY + menuHeight - 1, menuX + menuWidth, menuY + menuHeight, borderColor);
+        guiGraphics.fill(menuX, menuY, menuX + 1, menuY + menuHeight, borderColor);
+        guiGraphics.fill(menuX + menuWidth - 1, menuY, menuX + menuWidth, menuY + menuHeight, borderColor);
     }
 
-    /**
-     * メニューがアクティブかどうか
-     */
     public static boolean isActive() {
         return isActive;
     }
 
-    /**
-     * 現在ホバー中のエモートインデックスを取得
-     */
     public static int getHoveredEmote() {
         return hoveredEmote;
     }

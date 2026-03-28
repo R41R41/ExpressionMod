@@ -1,16 +1,13 @@
 package com.expression.network;
 
 import com.expression.ExpressionMod;
-import net.minecraft.network.RegistryByteBuf;
-import net.minecraft.network.codec.PacketCodec;
-import net.minecraft.network.packet.CustomPayload;
-import net.minecraft.util.Identifier;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.Identifier;
 
 import java.util.UUID;
 
-/**
- * 全状態同期用ペイロード（新規参加者への初期同期用）
- */
 public record FullStateSyncPayload(
         UUID playerUuid,
         String playerName,
@@ -21,17 +18,17 @@ public record FullStateSyncPayload(
         float headYawOffset,
         float headPitchOffset,
         boolean isBlinking,
-        float blinkProgress) implements CustomPayload {
+        float blinkProgress) implements CustomPacketPayload {
 
-    public static final CustomPayload.Id<FullStateSyncPayload> ID = new CustomPayload.Id<>(
-            Identifier.of(ExpressionMod.MOD_ID, "full_state_sync"));
+    public static final CustomPacketPayload.Type<FullStateSyncPayload> ID = new CustomPacketPayload.Type<>(
+            Identifier.fromNamespaceAndPath(ExpressionMod.MOD_ID, "full_state_sync"));
 
-    public static final PacketCodec<RegistryByteBuf, FullStateSyncPayload> CODEC = new PacketCodec<>() {
+    public static final StreamCodec<RegistryFriendlyByteBuf, FullStateSyncPayload> CODEC = new StreamCodec<>() {
         @Override
-        public FullStateSyncPayload decode(RegistryByteBuf buf) {
-            UUID uuid = UUID.fromString(buf.readString());
-            String name = buf.readString();
-            String emote = buf.readString();
+        public FullStateSyncPayload decode(RegistryFriendlyByteBuf buf) {
+            UUID uuid = UUID.fromString(buf.readUtf());
+            String name = buf.readUtf();
+            String emote = buf.readUtf();
             long remaining = buf.readVarLong();
             float eyeY = buf.readFloat();
             float eyeP = buf.readFloat();
@@ -43,10 +40,10 @@ public record FullStateSyncPayload(
         }
 
         @Override
-        public void encode(RegistryByteBuf buf, FullStateSyncPayload payload) {
-            buf.writeString(payload.playerUuid().toString());
-            buf.writeString(payload.playerName());
-            buf.writeString(payload.emoteId());
+        public void encode(RegistryFriendlyByteBuf buf, FullStateSyncPayload payload) {
+            buf.writeUtf(payload.playerUuid().toString());
+            buf.writeUtf(payload.playerName());
+            buf.writeUtf(payload.emoteId());
             buf.writeVarLong(payload.emoteRemainingMs());
             buf.writeFloat(payload.eyeYaw());
             buf.writeFloat(payload.eyePitch());
@@ -58,7 +55,7 @@ public record FullStateSyncPayload(
     };
 
     @Override
-    public Id<? extends CustomPayload> getId() {
+    public Type<? extends CustomPacketPayload> type() {
         return ID;
     }
 }

@@ -1,35 +1,32 @@
 package com.expression.network;
 
 import com.expression.ExpressionMod;
-import net.minecraft.network.RegistryByteBuf;
-import net.minecraft.network.codec.PacketCodec;
-import net.minecraft.network.codec.PacketCodecs;
-import net.minecraft.network.packet.CustomPayload;
-import net.minecraft.util.Identifier;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.Identifier;
 
 import java.util.UUID;
 
-/**
- * エモート同期用ペイロード
- */
 public record EmoteSyncPayload(
         UUID playerUuid,
         String playerName,
         String emoteId,
-        long durationMs) implements CustomPayload {
+        long durationMs) implements CustomPacketPayload {
 
-    public static final CustomPayload.Id<EmoteSyncPayload> ID = new CustomPayload.Id<>(
-            Identifier.of(ExpressionMod.MOD_ID, "emote_sync"));
+    public static final CustomPacketPayload.Type<EmoteSyncPayload> ID = new CustomPacketPayload.Type<>(
+            Identifier.fromNamespaceAndPath(ExpressionMod.MOD_ID, "emote_sync"));
 
-    public static final PacketCodec<RegistryByteBuf, EmoteSyncPayload> CODEC = PacketCodec.tuple(
-            PacketCodecs.STRING.xmap(UUID::fromString, UUID::toString), EmoteSyncPayload::playerUuid,
-            PacketCodecs.STRING, EmoteSyncPayload::playerName,
-            PacketCodecs.STRING, EmoteSyncPayload::emoteId,
-            PacketCodecs.VAR_LONG, EmoteSyncPayload::durationMs,
+    public static final StreamCodec<RegistryFriendlyByteBuf, EmoteSyncPayload> CODEC = StreamCodec.composite(
+            ByteBufCodecs.STRING_UTF8.map(UUID::fromString, UUID::toString), EmoteSyncPayload::playerUuid,
+            ByteBufCodecs.STRING_UTF8, EmoteSyncPayload::playerName,
+            ByteBufCodecs.STRING_UTF8, EmoteSyncPayload::emoteId,
+            ByteBufCodecs.VAR_LONG, EmoteSyncPayload::durationMs,
             EmoteSyncPayload::new);
 
     @Override
-    public Id<? extends CustomPayload> getId() {
+    public Type<? extends CustomPacketPayload> type() {
         return ID;
     }
 }

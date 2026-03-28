@@ -1,6 +1,6 @@
 package com.expression.state;
 
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.phys.Vec3;
 
 /**
  * 視線（目）の状態を管理するクラス
@@ -34,7 +34,7 @@ public class EyeState {
     private float aversionOffsetPitch = 0;
 
     // LookAtターゲット座標（ワールド座標）
-    private Vec3d lookAtTarget = null;
+    private Vec3 lookAtTarget = null;
 
     // 定数
     private static final float SACCADE_SPEED = 0.3f; // サッケード速度（1tick = 約20°移動）
@@ -59,7 +59,7 @@ public class EyeState {
     /**
      * LookAtターゲットを設定
      */
-    public void setLookAtTarget(Vec3d target) {
+    public void setLookAtTarget(Vec3 target) {
         if (target == null) {
             this.lookAtTarget = null;
             return;
@@ -220,7 +220,7 @@ public class EyeState {
         return targetPitch;
     }
 
-    public Vec3d getLookAtTarget() {
+    public Vec3 getLookAtTarget() {
         return lookAtTarget;
     }
 

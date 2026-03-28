@@ -1,6 +1,6 @@
 package com.expression.state;
 
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.UUID;
 
@@ -54,7 +54,7 @@ public class ExpressionState {
     /**
      * LookAtターゲットを設定（ワールド座標）
      */
-    public void setLookAtTarget(Vec3d target) {
+    public void setLookAtTarget(Vec3 target) {
         eyeState.setLookAtTarget(target);
     }
 
@@ -75,13 +75,13 @@ public class ExpressionState {
     /**
      * プレイヤーの位置と向きからターゲット座標を計算し、視線を設定
      */
-    public void lookAt(Vec3d playerEyePos, Vec3d target) {
+    public void lookAt(Vec3 playerEyePos, Vec3 target) {
         if (target == null) {
             eyeState.setLookAtTarget(null);
             return;
         }
 
-        Vec3d direction = target.subtract(playerEyePos).normalize();
+        Vec3 direction = target.subtract(playerEyePos).normalize();
 
         // 方向ベクトルから角度を計算
         float yaw = (float) Math.toDegrees(Math.atan2(-direction.x, direction.z));

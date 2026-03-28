@@ -37,7 +37,7 @@ public class ExpressionMod implements ModInitializer {
 
         // プレイヤー退出時に状態をクリア
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
-            ExpressionStateManager.getInstance().remove(handler.getPlayer().getUuid());
+            ExpressionStateManager.getInstance().remove(handler.getPlayer().getUUID());
         });
 
         LOGGER.info("Expression Mod initialized!");
