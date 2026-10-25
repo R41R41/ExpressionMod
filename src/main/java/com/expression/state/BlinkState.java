@@ -1,104 +1,56 @@
 package com.expression.state;
 
-/**
- * まばたき（ブリンク）の状態を管理するクラス
- */
+import java.util.function.DoubleSupplier;
+import java.util.function.LongSupplier;
+
+/** Analytic eyelid closure sampled at render time rather than discrete eye frames. */
 public class BlinkState {
-    private boolean isBlinking = false;
-    private long blinkStartTime = 0;
-    private long nextBlinkTime = 0;
-    private float blinkProgress = 0; // 0=開, 1=閉
+    public static final long CLOSE_MS = 55;
+    public static final long HOLD_MS = 20;
+    public static final long OPEN_MS = 110;
+    private final LongSupplier clock;
+    private final DoubleSupplier random;
+    private long intervalMin = 3000;
+    private long intervalMax = 6000;
+    private long blinkStart = Long.MIN_VALUE;
+    private long nextBlink;
+    private float openingScale = 1;
+    private float activeOpeningScale = 1;
 
-    // 定数
-    private static final long BLINK_INTERVAL_MIN = 3000; // 最小間隔（3秒）
-    private static final long BLINK_INTERVAL_MAX = 6000; // 最大間隔（6秒）
-    private static final long BLINK_DURATION_MS = 150; // まばたき時間（150ms）
-    private static final long BLINK_CLOSE_TIME = 50; // 閉じるまでの時間
-    private static final long BLINK_OPEN_TIME = 100; // 開くまでの時間
-
-    public BlinkState() {
-        scheduleNextBlink();
+    public BlinkState() { this(() -> System.nanoTime() / 1_000_000, Math::random); }
+    public BlinkState(LongSupplier clock, DoubleSupplier random) {
+        this.clock = clock;
+        this.random = random;
+        schedule(clock.getAsLong());
     }
-
-    /**
-     * 強制的にまばたきを開始
-     */
-    public void triggerBlink() {
-        if (!isBlinking) {
-            isBlinking = true;
-            blinkStartTime = System.currentTimeMillis();
+    public void configure(long minimum, long maximum) {
+        long min = Math.clamp(minimum, 250, 60_000);
+        long max = Math.clamp(maximum, min, 60_000);
+        if (min != intervalMin || max != intervalMax) {
+            intervalMin = min;
+            intervalMax = max;
+            schedule(clock.getAsLong());
         }
     }
-
-    /**
-     * 毎tick更新処理
-     */
-    public void tick() {
-        long currentTime = System.currentTimeMillis();
-
-        if (isBlinking) {
-            // まばたき中の進行
-            long elapsed = currentTime - blinkStartTime;
-
-            if (elapsed < BLINK_CLOSE_TIME) {
-                // 閉じる途中
-                blinkProgress = (float) elapsed / BLINK_CLOSE_TIME;
-            } else if (elapsed < BLINK_CLOSE_TIME + BLINK_OPEN_TIME) {
-                // 開く途中
-                blinkProgress = 1.0f - ((float) (elapsed - BLINK_CLOSE_TIME) / BLINK_OPEN_TIME);
-            } else {
-                // まばたき終了
-                isBlinking = false;
-                blinkProgress = 0;
-                scheduleNextBlink();
-            }
-        } else {
-            // 次のまばたき時間をチェック
-            if (currentTime >= nextBlinkTime) {
-                triggerBlink();
-            }
-        }
-    }
-
-    /**
-     * 大きな動きに合わせてまばたきを誘発
-     * （視線の大きな移動時などに呼ぶ）
-     */
-    public void triggerOnMovement() {
-        // 次のまばたきが近い場合（1秒以内）は即座にまばたき
-        if (!isBlinking && System.currentTimeMillis() >= nextBlinkTime - 1000) {
-            triggerBlink();
-        }
-    }
-
-    private void scheduleNextBlink() {
-        nextBlinkTime = System.currentTimeMillis() +
-                BLINK_INTERVAL_MIN +
-                (long) (Math.random() * (BLINK_INTERVAL_MAX - BLINK_INTERVAL_MIN));
-    }
-
-    // Getters
-    public boolean isBlinking() {
-        return isBlinking;
-    }
-
+    public void openingScale(float scale) { openingScale = Float.isFinite(scale) ? Math.clamp(scale, 1, 2) : 1; }
+    public void triggerBlink() { if (!isBlinking()) { blinkStart = clock.getAsLong(); activeOpeningScale = openingScale; } }
+    public void tick() { getBlinkProgress(); }
     public float getBlinkProgress() {
-        return blinkProgress;
+        long now = clock.getAsLong();
+        if (blinkStart == Long.MIN_VALUE && now >= nextBlink) { blinkStart = now; activeOpeningScale = openingScale; }
+        if (blinkStart == Long.MIN_VALUE) return 0;
+        long elapsed = now - blinkStart;
+        if (elapsed < CLOSE_MS) return FacePose.smoothstep((float) elapsed / CLOSE_MS);
+        if (elapsed < CLOSE_MS + HOLD_MS) return 1;
+        if (elapsed < CLOSE_MS + HOLD_MS + OPEN_MS * activeOpeningScale)
+            return 1 - FacePose.smoothstep((float) (elapsed - CLOSE_MS - HOLD_MS) / (OPEN_MS * activeOpeningScale));
+        blinkStart = Long.MIN_VALUE;
+        schedule(now);
+        return 0;
     }
-
-    /**
-     * 目が閉じているかどうか
-     */
-    public boolean isEyeClosed() {
-        return blinkProgress > 0.8f;
-    }
-
-    /**
-     * 状態をリセット
-     */
-    public void reset() {
-        isBlinking = false;
-        blinkProgress = 0;
-        scheduleNextBlink();
-    }
+    public boolean isBlinking() { getBlinkProgress(); return blinkStart != Long.MIN_VALUE; }
+    public boolean isEyeClosed() { return getBlinkProgress() > .8f; }
+    public void triggerOnMovement() { if (clock.getAsLong() >= nextBlink - 1000) triggerBlink(); }
+    private void schedule(long now) { nextBlink = now + intervalMin + (long) (random.getAsDouble() * (intervalMax - intervalMin)); }
+    public void reset() { blinkStart = Long.MIN_VALUE; schedule(clock.getAsLong()); }
 }

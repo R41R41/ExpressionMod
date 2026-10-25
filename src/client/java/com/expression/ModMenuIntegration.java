@@ -8,6 +8,7 @@ import me.shedaniel.clothconfig2.api.ConfigCategory;
 import me.shedaniel.clothconfig2.api.ConfigEntryBuilder;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
+import net.fabricmc.loader.api.FabricLoader;
 
 /**
  * ModMenu統合 - 設定画面を提供
@@ -16,6 +17,7 @@ public class ModMenuIntegration implements ModMenuApi {
 
     @Override
     public ConfigScreenFactory<?> getModConfigScreenFactory() {
+        if (!FabricLoader.getInstance().isModLoaded("cloth-config")) return null;
         return this::createConfigScreen;
     }
 
@@ -32,6 +34,34 @@ public class ModMenuIntegration implements ModMenuApi {
         // 一般設定カテゴリ
         ConfigCategory general = builder.getOrCreateCategory(
                 Text.translatable("config.expressionmod.category.general"));
+
+        general.addEntry(entryBuilder
+                .startBooleanToggle(Text.translatable("config.expressionmod.shannon_skin_profile"), config.enableShannonSkinProfile)
+                .setDefaultValue(false)
+                .setTooltip(Text.translatable("config.expressionmod.shannon_skin_profile.tooltip"))
+                .setSaveConsumer(value -> config.enableShannonSkinProfile = value)
+                .build());
+
+        general.addEntry(entryBuilder
+                .startBooleanToggle(Text.translatable("config.expressionmod.shannon_circuit_flow"), config.enableShannonCircuitFlow)
+                .setDefaultValue(false)
+                .setTooltip(Text.translatable("config.expressionmod.shannon_circuit_flow.tooltip"))
+                .setSaveConsumer(value -> config.enableShannonCircuitFlow = value)
+                .build());
+
+        general.addEntry(entryBuilder
+                .startBooleanToggle(Text.translatable("config.expressionmod.shannon_eye_gradient"), config.enableShannonEyeGradient)
+                .setDefaultValue(true)
+                .setTooltip(Text.translatable("config.expressionmod.shannon_eye_gradient.tooltip"))
+                .setSaveConsumer(value -> config.enableShannonEyeGradient = value)
+                .build());
+
+        general.addEntry(entryBuilder
+                .startBooleanToggle(Text.translatable("config.expressionmod.shannon_dialogue_motion"), config.enableShannonDialogueMotion)
+                .setDefaultValue(true)
+                .setTooltip(Text.translatable("config.expressionmod.shannon_dialogue_motion.tooltip"))
+                .setSaveConsumer(value -> config.enableShannonDialogueMotion = value)
+                .build());
 
         general.addEntry(entryBuilder
                 .startBooleanToggle(
@@ -101,6 +131,15 @@ public class ModMenuIntegration implements ModMenuApi {
                 .setTooltip(Text.translatable("config.expressionmod.default_emote_duration.tooltip"))
                 .setSaveConsumer(value -> config.defaultEmoteDurationMs = value)
                 .build());
+
+        advanced.addEntry(entryBuilder
+                .startLongField(Text.translatable("config.expressionmod.blink_interval_min"), config.blinkIntervalMin)
+                .setDefaultValue(3000L).setMin(250L).setMax(60000L)
+                .setSaveConsumer(value -> config.blinkIntervalMin = value).build());
+        advanced.addEntry(entryBuilder
+                .startLongField(Text.translatable("config.expressionmod.blink_interval_max"), config.blinkIntervalMax)
+                .setDefaultValue(6000L).setMin(250L).setMax(60000L)
+                .setSaveConsumer(value -> config.blinkIntervalMax = value).build());
 
         advanced.addEntry(entryBuilder
                 .startFloatField(

@@ -9,6 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class ExpressionStateManager {
     private static final ExpressionStateManager INSTANCE = new ExpressionStateManager();
+    private static final ExpressionStateManager SERVER = new ExpressionStateManager();
 
     // プレイヤーUUID -> ExpressionState
     private final Map<UUID, ExpressionState> states = new ConcurrentHashMap<>();
@@ -22,6 +23,9 @@ public class ExpressionStateManager {
     public static ExpressionStateManager getInstance() {
         return INSTANCE;
     }
+
+    /** Integrated servers and their clients must not share mutable animation state. */
+    public static ExpressionStateManager server() { return SERVER; }
 
     /**
      * プレイヤーの状態を取得（なければ作成）

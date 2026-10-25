@@ -17,6 +17,15 @@ public class ClientNetworkHandler {
      * クライアント側レシーバーを登録
      */
     public static void registerClientReceivers() {
+        ClientPlayNetworking.registerGlobalReceiver(BridgeReadyPayload.ID, (payload, context) -> {});
+        ClientPlayNetworking.registerGlobalReceiver(DialogueSyncPayload.ID, (payload, context) -> {
+            context.client().execute(() -> {
+                if (!Float.isFinite(payload.yaw()) || !Float.isFinite(payload.pitch())) return;
+                ExpressionStateManager.getInstance().getOrCreate(payload.playerUuid(), payload.playerName())
+                        .getDialogueState().update(com.expression.state.DialogueActivity.fromId(payload.activity()),
+                                payload.durationMs(), payload.hasTarget(), payload.yaw(), payload.pitch());
+            });
+        });
         // エモート同期受信
         ClientPlayNetworking.registerGlobalReceiver(EmoteSyncPayload.ID, (payload, context) -> {
             context.client().execute(() -> {
@@ -54,8 +63,10 @@ public class ClientNetworkHandler {
                     ExpressionState state = ExpressionStateManager.getInstance()
                             .getOrCreate(payload.playerUuid(), payload.playerName());
 
-                    state.setEmote(EmoteType.fromId(payload.emoteId()), payload.emoteRemainingMs());
-                    state.setEyeAngles(payload.eyeYaw(), payload.eyePitch());
+                    state.setEmote(payload.emoteRemainingMs() > 0 ? EmoteType.fromId(payload.emoteId()) : EmoteType.NEUTRAL,
+                            payload.emoteRemainingMs());
+                    if (payload.hasEyeTarget()) state.setEyeAngles(payload.eyeYaw(), payload.eyePitch());
+                    else state.clearEyeTarget();
                 }
             });
         });
@@ -68,7 +79,7 @@ public class ClientNetworkHandler {
      */
     public static void sendEmoteChange(EmoteType emote, long durationMs) {
         MinecraftClient client = MinecraftClient.getInstance();
-        if (client.player != null && client.getNetworkHandler() != null) {
+        if (client.player != null && client.getNetworkHandler() != null && ClientPlayNetworking.canSend(EmoteSyncPayload.ID)) {
             EmoteSyncPayload payload = new EmoteSyncPayload(
                     client.player.getUuid(),
                     client.player.getName().getString(),
@@ -83,7 +94,7 @@ public class ClientNetworkHandler {
      */
     public static void sendEyeChange(float yaw, float pitch, Vec3d target) {
         MinecraftClient client = MinecraftClient.getInstance();
-        if (client.player != null && client.getNetworkHandler() != null) {
+        if (client.player != null && client.getNetworkHandler() != null && ClientPlayNetworking.canSend(EyeSyncPayload.ID)) {
             EyeSyncPayload payload = new EyeSyncPayload(
                     client.player.getUuid(),
                     client.player.getName().getString(),

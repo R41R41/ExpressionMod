@@ -25,6 +25,13 @@ public class ModConfig {
     public boolean enableBlinking = true;
     public boolean enableMicroSaccades = true;
     public boolean enableGazeAversion = true;
+    // Opt-in: only these players using the exact inspected face receive the unmarked-skin adapter.
+    public boolean enableShannonSkinProfile = false;
+    // Experimental accessory animation; keep disabled until the user chooses it.
+    public boolean enableShannonCircuitFlow = false;
+    public boolean enableShannonEyeGradient = true;
+    public boolean enableShannonDialogueMotion = true;
+    public String[] shannonSkinPlayers = {com.expression.skin.ShannonSkinProfile.PLAYER_UUID};
 
     // デフォルトのエモート持続時間（ミリ秒）
     public long defaultEmoteDurationMs = 3000;

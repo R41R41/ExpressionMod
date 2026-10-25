@@ -24,6 +24,7 @@ public class NetworkHandler {
         PayloadTypeRegistry.playC2S().register(
                 EyeSyncPayload.ID,
                 EyeSyncPayload.CODEC);
+        PayloadTypeRegistry.playC2S().register(DialogueSyncPayload.ID, DialogueSyncPayload.CODEC);
 
         // Server -> Client (S2C)
         PayloadTypeRegistry.playS2C().register(
@@ -35,6 +36,8 @@ public class NetworkHandler {
         PayloadTypeRegistry.playS2C().register(
                 FullStateSyncPayload.ID,
                 FullStateSyncPayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(DialogueSyncPayload.ID, DialogueSyncPayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(BridgeReadyPayload.ID, BridgeReadyPayload.CODEC);
 
         ExpressionMod.LOGGER.info("Network packets registered");
     }

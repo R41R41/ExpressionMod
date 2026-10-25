@@ -15,9 +15,11 @@ public class ExpressionState {
     private final EyeState eyeState;
     private final HeadState headState;
     private final BlinkState blinkState;
+    private final DialogueState dialogueState = new DialogueState();
 
     // 最終更新時刻（同期用）
     private long lastUpdateTime;
+    private boolean eyeTarget;
 
     public ExpressionState(UUID playerUuid, String playerName) {
         this.playerUuid = playerUuid;
@@ -62,6 +64,7 @@ public class ExpressionState {
      * 視線角度を直接設定
      */
     public void setEyeAngles(float yaw, float pitch) {
+        eyeTarget = true;
         // 大きな動きの場合はまばたきを誘発
         float deltaYaw = Math.abs(yaw - eyeState.getTargetYaw());
         float deltaPitch = Math.abs(pitch - eyeState.getTargetPitch());
@@ -95,6 +98,7 @@ public class ExpressionState {
      * 状態をリセット
      */
     public void reset() {
+        eyeTarget = false;
         emoteState.reset();
         eyeState.reset();
         headState.reset();
@@ -125,6 +129,8 @@ public class ExpressionState {
     public BlinkState getBlinkState() {
         return blinkState;
     }
+
+    public DialogueState getDialogueState() { return dialogueState; }
 
     public long getLastUpdateTime() {
         return lastUpdateTime;
@@ -158,4 +164,7 @@ public class ExpressionState {
     public float getBlinkProgress() {
         return blinkState.getBlinkProgress();
     }
+
+    public boolean hasEyeTarget() { return eyeTarget; }
+    public void clearEyeTarget() { eyeTarget = false; eyeState.reset(); }
 }

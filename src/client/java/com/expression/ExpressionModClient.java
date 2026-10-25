@@ -1,206 +1,77 @@
 package com.expression;
 
+import com.expression.config.ModConfig;
 import com.expression.network.ClientNetworkHandler;
-import com.expression.render.EyelidRenderer;
-import com.expression.skin.BlinkController;
-import com.expression.skin.BlinkTextureManager;
-import com.expression.skin.EyeStateController;
-import com.expression.skin.EyelidTextureData;
-import com.expression.state.EmoteState;
+import com.expression.skin.FaceRuntime;
+import com.expression.skin.FaceSkinData;
 import com.expression.state.EmoteType;
-import com.expression.state.ExpressionState;
 import com.expression.state.ExpressionStateManager;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
-import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
-import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
-import net.minecraft.entity.effect.StatusEffects;
+import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 
+import java.util.HashSet;
 import java.util.UUID;
 
-/**
- * クライアント側エントリポイント
- */
 public class ExpressionModClient implements ClientModInitializer {
-
-    // キーバインド - Numpadキーを使用（衝突回避）
-    private static KeyBinding smileKey;
-    private static KeyBinding angryKey;
-    private static KeyBinding sadKey;
-    private static KeyBinding surprisedKey;
-    private static KeyBinding thinkKey;
-    private static KeyBinding shyKey;
-    private static KeyBinding reloadCacheKey;
-
-    @Override
-    public void onInitializeClient() {
-        // キーバインド登録 - Numpad 1-6 を使用
-        smileKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-                "key.expressionmod.smile",
-                InputUtil.Type.KEYSYM,
-                GLFW.GLFW_KEY_KP_1, // Numpad 1
-                "category.expressionmod.emotes"));
-
-        angryKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-                "key.expressionmod.angry",
-                InputUtil.Type.KEYSYM,
-                GLFW.GLFW_KEY_KP_2, // Numpad 2
-                "category.expressionmod.emotes"));
-
-        sadKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-                "key.expressionmod.sad",
-                InputUtil.Type.KEYSYM,
-                GLFW.GLFW_KEY_KP_3, // Numpad 3
-                "category.expressionmod.emotes"));
-
-        surprisedKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-                "key.expressionmod.surprised",
-                InputUtil.Type.KEYSYM,
-                GLFW.GLFW_KEY_KP_4, // Numpad 4
-                "category.expressionmod.emotes"));
-
-        thinkKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-                "key.expressionmod.think",
-                InputUtil.Type.KEYSYM,
-                GLFW.GLFW_KEY_KP_5, // Numpad 5
-                "category.expressionmod.emotes"));
-
-        shyKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-                "key.expressionmod.shy",
-                InputUtil.Type.KEYSYM,
-                GLFW.GLFW_KEY_KP_6, // Numpad 6
-                "category.expressionmod.emotes"));
-
-        reloadCacheKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-                "key.expressionmod.reload_cache",
-                InputUtil.Type.KEYSYM,
-                GLFW.GLFW_KEY_KP_0, // Numpad 0
-                "category.expressionmod.emotes"));
-
-        // クライアントtickイベント - 目の状態を更新
+    private static final EmoteType[] EMOTES = { EmoteType.SMILE, EmoteType.ANGRY, EmoteType.SAD,
+        EmoteType.SURPRISED, EmoteType.THINK, EmoteType.SHY, EmoteType.NEUTRAL };
+    private final KeyBinding[] keys = new KeyBinding[EMOTES.length];
+    private boolean menuChord;
+    @Override public void onInitializeClient() {
+        ClientNetworkHandler.registerClientReceivers();
+        var category = KeyBinding.Category.create(Identifier.of("expressionmod", "emotes"));
+        for (int i = 0; i < keys.length; i++)
+            keys[i] = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.expressionmod." + EMOTES[i].getId(),
+                    InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_KP_1 + i, category));
+        var reload = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.expressionmod.reload_cache",
+                InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_KP_0, category));
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            // キー入力処理
-            processKeyInput(client);
-
-            // 目の状態を更新（まばたき + アイトラッキング + 睡眠/盲目）
-            EyeStateController.update();
-
-            // ワールド内のプレイヤーのまばたき状態を更新（旧システム互換）
-            if (client.world != null) {
-                for (AbstractClientPlayerEntity player : client.world.getPlayers()) {
-                    updatePlayerBlink(player);
+            if (client.player == null || client.world == null) return;
+            long window=client.getWindow().getHandle();
+            boolean chord=(GLFW.glfwGetKey(window,GLFW.GLFW_KEY_LEFT_CONTROL)==GLFW.GLFW_PRESS
+                    || GLFW.glfwGetKey(window,GLFW.GLFW_KEY_RIGHT_CONTROL)==GLFW.GLFW_PRESS)
+                    && GLFW.glfwGetMouseButton(window,GLFW.GLFW_MOUSE_BUTTON_RIGHT)==GLFW.GLFW_PRESS;
+            if(chord && !menuChord && client.currentScreen==null) {
+                var texture=client.player.getSkin().body().texturePath();
+                for(int slot=0;slot<5;slot++) if(com.expression.skin.LegacySkinTextures.hasEmote(texture,slot)) {
+                    client.setScreen(new com.expression.render.LegacyEmoteScreen()); break;
                 }
             }
-
-            // 自分のExpressionStateを更新
-            if (client.player != null) {
-                ExpressionState state = ExpressionStateManager.getInstance()
-                        .getOrCreate(client.player.getUuid(), client.player.getName().getString());
-                state.tick();
+            menuChord=chord;
+            for (int i = 0; i < keys.length; i++) while (keys[i].wasPressed()) {
+                var emote = EMOTES[i];
+                long duration = ModConfig.getInstance().defaultEmoteDurationMs;
+                ExpressionStateManager.getInstance().getOrCreate(client.player.getUuid(), client.player.getName().getString())
+                        .setEmote(emote, duration);
+                ClientNetworkHandler.sendEmoteChange(emote, duration);
+                client.player.sendMessage(Text.literal("[ExpressionMod] " + emote.getDisplayName()), true);
             }
+            while (reload.wasPressed()) {
+                FaceRuntime.clear();
+                com.expression.skin.LegacySkinTextures.clearFrames();
+                FaceSkinData.invalidateResources();
+                ExpressionStateManager.getInstance().clear();
+                client.player.sendMessage(Text.literal("[ExpressionMod] アニメーションをリセットしました"), true);
+            }
+            // Tick remote expression leases too; discard gaze caches for players outside the loaded world.
+            var players = new HashSet<UUID>();
+            for (var player : client.world.getPlayers()) players.add(player.getUuid());
+            ExpressionStateManager.getInstance().tickAll();
+            FaceRuntime.retain(players);
+            com.expression.skin.LegacySkinTextures.retain(players);
         });
-
-        // クライアントネットワークハンドラー登録
-        ClientNetworkHandler.registerClientReceivers();
-
-        // サーバー切断時に状態をクリア
-        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> client.execute(() -> {
             ExpressionStateManager.getInstance().clear();
-            EyelidRenderer.clearAll();
-            BlinkTextureManager.clearCache();
-            EyelidTextureData.clearAllCaches();
-            EyeStateController.reset();
-        });
-
-        ExpressionMod.LOGGER.info("Expression Mod Client initialized!");
-        ExpressionMod.LOGGER.info("Emote keys: Numpad 1-6, Cache clear: Numpad 0");
-    }
-
-    /**
-     * プレイヤーのまばたき状態を更新
-     */
-    private void updatePlayerBlink(AbstractClientPlayerEntity player) {
-        try {
-            UUID playerUuid = player.getUuid();
-
-            // まばたき状態を更新
-            boolean isSleeping = player.isSleeping();
-            boolean isBlind = player.hasStatusEffect(StatusEffects.BLINDNESS);
-            BlinkController.update(playerUuid, isSleeping, isBlind);
-
-            // スキンテクスチャからまぶたデータを初期化（一度だけ）
-            if (EyelidTextureData.get(playerUuid) == null) {
-                var skinTexture = player.getSkinTextures().texture();
-                EyelidTextureData.getOrCreate(playerUuid, skinTexture);
-            }
-        } catch (Exception e) {
-            // エラーは無視
-        }
-    }
-
-    /**
-     * キー入力を処理してエモートを発動
-     */
-    private void processKeyInput(MinecraftClient client) {
-        if (client.player == null)
-            return;
-
-        EmoteType emote = null;
-
-        while (smileKey.wasPressed()) {
-            emote = EmoteType.SMILE;
-        }
-        while (angryKey.wasPressed()) {
-            emote = EmoteType.ANGRY;
-        }
-        while (sadKey.wasPressed()) {
-            emote = EmoteType.SAD;
-        }
-        while (surprisedKey.wasPressed()) {
-            emote = EmoteType.SURPRISED;
-        }
-        while (thinkKey.wasPressed()) {
-            emote = EmoteType.THINK;
-        }
-        while (shyKey.wasPressed()) {
-            emote = EmoteType.SHY;
-        }
-
-        // キャッシュ再読み込みキー
-        while (reloadCacheKey.wasPressed()) {
-            ExpressionMod.LOGGER.info("Clearing expression cache...");
-            EyelidRenderer.clearAll();
-            BlinkTextureManager.clearCache();
-            EyelidTextureData.clearAllCaches();
-            if (client.player != null) {
-                client.player.sendMessage(
-                        net.minecraft.text.Text.literal("§a[ExpressionMod] キャッシュをクリアしました"),
-                        true);
-            }
-        }
-
-        if (emote != null) {
-            // 自分の状態を更新
-            ExpressionState state = ExpressionStateManager.getInstance()
-                    .getOrCreate(client.player.getUuid(), client.player.getName().getString());
-            state.setEmote(emote, EmoteState.DEFAULT_DURATION_MS);
-
-            // サーバーに送信
-            ClientNetworkHandler.sendEmoteChange(emote, EmoteState.DEFAULT_DURATION_MS);
-
-            ExpressionMod.LOGGER.info("Emote triggered: " + emote.getId());
-
-            // フィードバック
-            client.player.sendMessage(
-                    net.minecraft.text.Text.literal("§e[ExpressionMod] " + emote.getId()),
-                    true);
-        }
+            FaceRuntime.clear();
+            com.expression.skin.LegacySkinTextures.clearFrames();
+        }));
+        ExpressionMod.LOGGER.info("Continuous face renderer ready (Minecraft 1.21.11). Numpad 1-6: emotes, 7: neutral, 0: reset.");
     }
 }

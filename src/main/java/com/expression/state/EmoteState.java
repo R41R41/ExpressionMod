@@ -1,103 +1,72 @@
 package com.expression.state;
 
-/**
- * エモート（表情）の状態を管理するクラス
- * duration_ms経過後にneutralに自動復帰する
- */
+import java.util.function.LongSupplier;
+
+/** A renewable expression lease, with frame-time interpolation and continuous interruption. */
 public class EmoteState {
-    private EmoteType currentEmote = EmoteType.NEUTRAL;
-    private long endTimeMs = 0;
-    private boolean isTransitioning = false;
-    private float transitionProgress = 1.0f;
-    private EmoteType previousEmote = EmoteType.NEUTRAL;
-
-    // トランジション時間（ミリ秒）
-    private static final long TRANSITION_DURATION_MS = 150;
-
-    // デフォルトのエモート持続時間
     public static final long DEFAULT_DURATION_MS = 3000;
+    public static final long MAX_DURATION_MS = 30_000;
+    public static final long TRANSITION_DURATION_MS = 450;
+    private final LongSupplier clock;
+    private EmoteType currentEmote = EmoteType.NEUTRAL;
+    private EmoteType previousEmote = EmoteType.NEUTRAL;
+    private FacePose startPose = FacePose.NEUTRAL;
+    private long transitionStart;
+    private long endTime;
 
-    /**
-     * エモートを設定
-     * 
-     * @param emote      設定するエモート
-     * @param durationMs 持続時間（0の場合はデフォルト値を使用）
-     */
+    public EmoteState() { this(() -> System.nanoTime() / 1_000_000); }
+    public EmoteState(LongSupplier clock) {
+        this.clock = clock;
+        transitionStart = clock.getAsLong() - TRANSITION_DURATION_MS;
+    }
+    public static long boundedDuration(long durationMs) {
+        return durationMs <= 0 ? DEFAULT_DURATION_MS : Math.min(durationMs, MAX_DURATION_MS);
+    }
     public void setEmote(EmoteType emote, long durationMs) {
-        if (emote == currentEmote && !isNeutral()) {
-            // 同じエモートの場合は時間を延長
-            this.endTimeMs = System.currentTimeMillis() + (durationMs > 0 ? durationMs : DEFAULT_DURATION_MS);
-            return;
-        }
-
-        // トランジション開始
-        this.previousEmote = this.currentEmote;
-        this.currentEmote = emote;
-        this.transitionProgress = 0.0f;
-        this.isTransitioning = true;
-
-        if (emote != EmoteType.NEUTRAL) {
-            this.endTimeMs = System.currentTimeMillis() + (durationMs > 0 ? durationMs : DEFAULT_DURATION_MS);
-        } else {
-            this.endTimeMs = 0;
-        }
+        long now = clock.getAsLong();
+        expire(now);
+        if (emote != currentEmote) transition(emote, now);
+        endTime = emote == EmoteType.NEUTRAL ? 0 : now + boundedDuration(durationMs);
     }
-
-    /**
-     * 毎tick更新処理
-     */
-    public void tick() {
-        // トランジション更新
-        if (isTransitioning) {
-            transitionProgress += 1.0f / (TRANSITION_DURATION_MS / 50.0f); // 50ms/tick想定
-            if (transitionProgress >= 1.0f) {
-                transitionProgress = 1.0f;
-                isTransitioning = false;
-            }
-        }
-
-        // 持続時間チェック
-        if (currentEmote != EmoteType.NEUTRAL && endTimeMs > 0) {
-            if (System.currentTimeMillis() >= endTimeMs) {
-                setEmote(EmoteType.NEUTRAL, 0);
-            }
+    private void transition(EmoteType emote, long now) {
+        startPose = sampleAt(now);
+        previousEmote = currentEmote;
+        currentEmote = emote;
+        transitionStart = now;
+    }
+    private void expire(long now) {
+        if (currentEmote != EmoteType.NEUTRAL && now >= endTime) {
+            // Start at the deadline, even if this player was not rendered at that instant.
+            long deadline = endTime;
+            transition(EmoteType.NEUTRAL, deadline);
+            endTime = 0;
         }
     }
-
-    public EmoteType getCurrentEmote() {
-        return currentEmote;
+    private FacePose sampleAt(long now) {
+        return startPose.interpolate(FacePose.of(currentEmote), (float) (now - transitionStart) / TRANSITION_DURATION_MS);
     }
-
-    public EmoteType getPreviousEmote() {
-        return previousEmote;
+    public FacePose sampleFace() {
+        long now = clock.getAsLong();
+        expire(now);
+        return sampleAt(now);
     }
-
+    public void tick() { expire(clock.getAsLong()); }
+    public EmoteType getCurrentEmote() { tick(); return currentEmote; }
+    public EmoteType getPreviousEmote() { return previousEmote; }
+    public boolean isNeutral() { return getCurrentEmote() == EmoteType.NEUTRAL; }
     public float getTransitionProgress() {
-        return transitionProgress;
+        tick();
+        return Math.clamp((float) (clock.getAsLong() - transitionStart) / TRANSITION_DURATION_MS, 0, 1);
     }
-
-    public boolean isTransitioning() {
-        return isTransitioning;
-    }
-
-    public boolean isNeutral() {
-        return currentEmote == EmoteType.NEUTRAL;
-    }
-
+    public boolean isTransitioning() { return getTransitionProgress() < 1; }
     public long getRemainingTimeMs() {
-        if (endTimeMs == 0)
-            return 0;
-        return Math.max(0, endTimeMs - System.currentTimeMillis());
+        tick();
+        return endTime == 0 ? 0 : Math.max(0, endTime - clock.getAsLong());
     }
-
-    /**
-     * 状態をリセット
-     */
     public void reset() {
-        this.currentEmote = EmoteType.NEUTRAL;
-        this.previousEmote = EmoteType.NEUTRAL;
-        this.endTimeMs = 0;
-        this.isTransitioning = false;
-        this.transitionProgress = 1.0f;
+        currentEmote = previousEmote = EmoteType.NEUTRAL;
+        startPose = FacePose.NEUTRAL;
+        endTime = 0;
+        transitionStart = clock.getAsLong() - TRANSITION_DURATION_MS;
     }
 }

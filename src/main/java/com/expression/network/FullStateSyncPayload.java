@@ -21,7 +21,8 @@ public record FullStateSyncPayload(
         float headYawOffset,
         float headPitchOffset,
         boolean isBlinking,
-        float blinkProgress) implements CustomPayload {
+        float blinkProgress,
+        boolean hasEyeTarget) implements CustomPayload {
 
     public static final CustomPayload.Id<FullStateSyncPayload> ID = new CustomPayload.Id<>(
             Identifier.of(ExpressionMod.MOD_ID, "full_state_sync"));
@@ -39,7 +40,8 @@ public record FullStateSyncPayload(
             float headP = buf.readFloat();
             boolean blink = buf.readBoolean();
             float blinkProg = buf.readFloat();
-            return new FullStateSyncPayload(uuid, name, emote, remaining, eyeY, eyeP, headY, headP, blink, blinkProg);
+            boolean eyeTarget = buf.readBoolean();
+            return new FullStateSyncPayload(uuid, name, emote, remaining, eyeY, eyeP, headY, headP, blink, blinkProg, eyeTarget);
         }
 
         @Override
@@ -54,6 +56,7 @@ public record FullStateSyncPayload(
             buf.writeFloat(payload.headPitchOffset());
             buf.writeBoolean(payload.isBlinking());
             buf.writeFloat(payload.blinkProgress());
+            buf.writeBoolean(payload.hasEyeTarget());
         }
     };
 
