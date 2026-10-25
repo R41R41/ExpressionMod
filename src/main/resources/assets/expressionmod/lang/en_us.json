@@ -56,8 +56,6 @@
   "config.expressionmod.blink_interval_max.tooltip": "Maximum blink interval (ms)",
   "config.expressionmod.debug_mode": "Debug mode",
   "config.expressionmod.debug_mode.tooltip": "Debug mode",
-  "config.expressionmod.shannon_skin_profile": "Enable Shannon robot skin",
-  "config.expressionmod.shannon_skin_profile.tooltip": "Applies only to configured player UUIDs with the inspected face. Keeps the original skin image.",
   "config.expressionmod.shannon_circuit_flow": "Subtle circuit flow (experimental)",
   "config.expressionmod.shannon_circuit_flow.tooltip": "A denser cyan band travels through Shannon's head, body and clothing traces. Disabled by default.",
   "config.expressionmod.shannon_eye_gradient": "Living eye gradient",

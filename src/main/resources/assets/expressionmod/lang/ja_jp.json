@@ -56,8 +56,6 @@
   "config.expressionmod.blink_interval_max.tooltip": "まばたき間隔の最大値 (ms)",
   "config.expressionmod.debug_mode": "デバッグモード",
   "config.expressionmod.debug_mode.tooltip": "デバッグモード",
-  "config.expressionmod.shannon_skin_profile": "シャノンの現在のスキンに対応",
-  "config.expressionmod.shannon_skin_profile.tooltip": "設定された UUID と確認済みの顔だけに適用します。スキン画像は変更しません。",
   "config.expressionmod.shannon_circuit_flow": "回路ラインの淡い流れ（試作）",
   "config.expressionmod.shannon_circuit_flow.tooltip": "シャノンスキンの頭・体・服の水色ラインに濃い水色の帯を流します。既定はオフ。",
   "config.expressionmod.shannon_eye_gradient": "目のグラデーションの揺らぎ",

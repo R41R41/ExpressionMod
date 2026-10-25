@@ -46,15 +46,16 @@ public final class PreviewSkin {
                 throw new AssertionError("Expected an unmarked original skin for this preview profile");
             var config = com.expression.config.ModConfig.getInstance();
             var shannon = java.util.UUID.fromString(com.expression.skin.ShannonSkinProfile.PLAYER_UUID);
-            config.enableShannonSkinProfile = false;
-            if (FaceSkinData.getForPlayer(body.texturePath(), shannon) != null)
-                throw new AssertionError("Disabled profile changed an unmarked skin");
-            config.enableShannonSkinProfile = true;
+            // 1.3.2: no opt-in. Shannon's face is adapted for every observer; nobody else's unmarked skin is.
             if (FaceSkinData.getForPlayer(body.texturePath(), shannon) == null)
                 throw new AssertionError("Production adapter did not capture the inspected face");
             if (FaceSkinData.getForPlayer(body.texturePath(), java.util.UUID.randomUUID()) != null)
                 throw new AssertionError("Production adapter applied to an unconfigured player");
-            config.enableShannonSkinProfile = false;
+            var saved = config.shannonSkinPlayers;
+            config.shannonSkinPlayers = new String[0];
+            if (FaceSkinData.getForPlayer(body.texturePath(), shannon) == null)
+                throw new AssertionError("Shannon's own face depended on a local setting");
+            config.shannonSkinPlayers = saved;
         });
         return true;
     }
@@ -78,6 +79,6 @@ public final class PreviewSkin {
                 circuitSeconds == null ? frame.eyeGradientSeconds()
                         : com.expression.config.ModConfig.getInstance().enableShannonEyeGradient ? circuitSeconds : -1);
     }
-    public static void enableExpressions() { expressions = true; com.expression.config.ModConfig.getInstance().enableShannonSkinProfile = true; }
+    public static void enableExpressions() { expressions = true; }
     private PreviewSkin() {}
 }

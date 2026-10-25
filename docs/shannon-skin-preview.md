@@ -13,20 +13,11 @@
 
 2026-10-08。ZIP の `preview/shannon-current.png` は2026-10-07に取得された64×64 classic スキン。アカウント `I_am_Shannon`、UUID `accf3442-b95f-414b-95fd-f70bbd2c9764`。今回新たに公開プロフィールを取得していない。
 
-## 製品版で有効にする
+## 製品版での適用（1.3.2 から設定なし）
 
-ExpressionMod 1.3.0 の Mod Menu で「シャノンの現在のスキンに対応」を有効にする。またはローカルの `config/expressionmod.json` の次の2項目を変更する。
+2026-10-26、マルチで他の人からシャノンの表情が見えない不具合を直した。原因は、1.3.0〜1.3.1 ではこの対応が既定で無効（`enableShannonSkinProfile: false`）で、設定を変えた人の画面にしか表情が出なかったこと。1.3.2 では設定をなくし、シャノンの UUID `accf3442-b95f-414b-95fd-f70bbd2c9764` には観察者全員の画面で適用する。古い設定ファイルの `enableShannonSkinProfile` は読まれない（あっても害はない）。`shannonSkinPlayers` に書いた UUID は、シャノンに加えて同じ顔のスキンを使う人として扱う。
 
-```json
-{
-  "enableShannonSkinProfile": true,
-  "shannonSkinPlayers": ["accf3442-b95f-414b-95fd-f70bbd2c9764"]
-}
-```
-
-設定全体の置換例ではない。JSON を手で編集した場合は次回クライアント起動時に読み込む。
-
-既定は無効。対象 UUID と確認済みの顔8×8ピクセルの SHA-256 が両方一致したときだけ適用する。スキンが変わって指紋が違う場合は適用しない。一般的な顔の自動検出ではない。cyan marker のスキンは従来通り対応する。
+対象 UUID と確認済みの顔8×8ピクセルの SHA-256 が両方一致したときだけ適用する。スキンが変わって指紋が違う場合は適用しない。一般的な顔の自動検出ではない。cyan marker のスキンは従来通り対応する。
 
 `ShannonSkinProfile` が元の目・まぶた・背景色から CPU 素材を作る。vanilla が GPU にアップロードする画像は変更せず、描画時に図形を重ねる。
 

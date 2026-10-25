@@ -36,13 +36,6 @@ public class ModMenuIntegration implements ModMenuApi {
                 Text.translatable("config.expressionmod.category.general"));
 
         general.addEntry(entryBuilder
-                .startBooleanToggle(Text.translatable("config.expressionmod.shannon_skin_profile"), config.enableShannonSkinProfile)
-                .setDefaultValue(false)
-                .setTooltip(Text.translatable("config.expressionmod.shannon_skin_profile.tooltip"))
-                .setSaveConsumer(value -> config.enableShannonSkinProfile = value)
-                .build());
-
-        general.addEntry(entryBuilder
                 .startBooleanToggle(Text.translatable("config.expressionmod.shannon_circuit_flow"), config.enableShannonCircuitFlow)
                 .setDefaultValue(false)
                 .setTooltip(Text.translatable("config.expressionmod.shannon_circuit_flow.tooltip"))

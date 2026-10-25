@@ -60,7 +60,7 @@ public final class FaceSkinData {
         var data = raw(texture);
         if (data == null || !data.shannonProfile) return data;
         var config = ModConfig.getInstance();
-        return ShannonSkinProfile.allowedPlayer(player, config.enableShannonSkinProfile, config.shannonSkinPlayers) ? data : null;
+        return ShannonSkinProfile.allowedPlayer(player, config.shannonSkinPlayers) ? data : null;
     }
 
     private static FaceSkinData raw(Identifier texture) {

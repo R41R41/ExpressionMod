@@ -54,9 +54,15 @@ public final class ShannonSkinProfile {
         } catch (NoSuchAlgorithmException impossible) { throw new IllegalStateException(impossible); }
     }
 
-    public static boolean allowedPlayer(UUID player, boolean enabled, String[] allowed) {
-        if (!enabled || player == null || allowed == null) return false;
-        for (String id : allowed) if (player.toString().equalsIgnoreCase(id)) return true;
+    /**
+     * Shannon herself always (1.3.2: every observer sees her face without a setting; the face fingerprint still has to match),
+     * and any further player the local config names.
+     */
+    public static boolean allowedPlayer(UUID player, String[] extra) {
+        if (player == null) return false;
+        if (PLAYER_UUID.equalsIgnoreCase(player.toString())) return true;
+        if (extra == null) return false;
+        for (String id : extra) if (player.toString().equalsIgnoreCase(id)) return true;
         return false;
     }
 

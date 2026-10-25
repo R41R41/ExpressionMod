@@ -25,12 +25,12 @@ public class ModConfig {
     public boolean enableBlinking = true;
     public boolean enableMicroSaccades = true;
     public boolean enableGazeAversion = true;
-    // Opt-in: only these players using the exact inspected face receive the unmarked-skin adapter.
-    public boolean enableShannonSkinProfile = false;
     // Experimental accessory animation; keep disabled until the user chooses it.
     public boolean enableShannonCircuitFlow = false;
     public boolean enableShannonEyeGradient = true;
     public boolean enableShannonDialogueMotion = true;
+    // Shannon's own UUID always gets the unmarked-skin adapter when her inspected face matches (1.3.2: no opt-in, so every
+    // observer sees her expressions); players listed here get it too. An old config's enableShannonSkinProfile is ignored.
     public String[] shannonSkinPlayers = {com.expression.skin.ShannonSkinProfile.PLAYER_UUID};
 
     // デフォルトのエモート持続時間（ミリ秒）

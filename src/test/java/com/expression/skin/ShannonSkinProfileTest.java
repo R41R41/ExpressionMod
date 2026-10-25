@@ -89,13 +89,15 @@ class ShannonSkinProfileTest {
         assertEquals(new SkinLayout.EyeSpan(2, 3), span);
     }
 
-    @Test void optInAndPlayerBindingAreBothRequired() {
+    @Test void shannonNeedsNoSettingAndOthersNeedToBeListed() {
+        // 1.3.2: every observer sees Shannon's face (multiplayer); the face fingerprint is still checked by matches().
         var shannon = UUID.fromString(ShannonSkinProfile.PLAYER_UUID);
-        var allowed = new String[]{ShannonSkinProfile.PLAYER_UUID};
-        assertTrue(ShannonSkinProfile.allowedPlayer(shannon, true, allowed));
-        assertFalse(ShannonSkinProfile.allowedPlayer(shannon, false, allowed));
-        assertFalse(ShannonSkinProfile.allowedPlayer(UUID.randomUUID(), true, allowed));
-        assertFalse(ShannonSkinProfile.allowedPlayer(shannon, true, new String[]{"invalid"}));
-        assertFalse(ShannonSkinProfile.allowedPlayer(shannon, true, null));
+        assertTrue(ShannonSkinProfile.allowedPlayer(shannon, null));
+        assertTrue(ShannonSkinProfile.allowedPlayer(shannon, new String[0]));
+        assertTrue(ShannonSkinProfile.allowedPlayer(shannon, new String[]{"invalid"}));
+        var friend = UUID.randomUUID();
+        assertFalse(ShannonSkinProfile.allowedPlayer(friend, new String[]{ShannonSkinProfile.PLAYER_UUID}));
+        assertTrue(ShannonSkinProfile.allowedPlayer(friend, new String[]{friend.toString().toUpperCase()}));
+        assertFalse(ShannonSkinProfile.allowedPlayer(null, new String[]{ShannonSkinProfile.PLAYER_UUID}));
     }
 }
