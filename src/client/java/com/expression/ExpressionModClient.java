@@ -51,7 +51,7 @@ public class ExpressionModClient implements ClientModInitializer {
                 ExpressionStateManager.getInstance().getOrCreate(client.player.getUuid(), client.player.getName().getString())
                         .setEmote(emote, duration);
                 ClientNetworkHandler.sendEmoteChange(emote, duration);
-                client.player.sendMessage(Text.literal("[ExpressionMod] " + emote.getDisplayName()), true);
+                client.player.sendMessage(Text.literal("[ExpressionMod] " + EmoteLabels.feedback(client, emote)), true);
             }
             while (reload.wasPressed()) {
                 FaceRuntime.clear();

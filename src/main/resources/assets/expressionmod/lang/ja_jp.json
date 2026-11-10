@@ -1,11 +1,11 @@
 {
   "category.expressionmod.emotes": "表情エモート",
-  "key.expressionmod.smile": "笑顔 (テンキー1)",
-  "key.expressionmod.angry": "怒り (テンキー2)",
-  "key.expressionmod.sad": "悲しみ (テンキー3)",
-  "key.expressionmod.surprised": "驚き (テンキー4)",
-  "key.expressionmod.think": "考え中 (テンキー5)",
-  "key.expressionmod.shy": "恥じらい (テンキー6)",
+  "key.expressionmod.smile": "表情 1（テンキー1）",
+  "key.expressionmod.angry": "表情 2（テンキー2）",
+  "key.expressionmod.sad": "表情 3（テンキー3）",
+  "key.expressionmod.surprised": "表情 4（テンキー4）",
+  "key.expressionmod.think": "表情 5（テンキー5）",
+  "key.expressionmod.shy": "表情 6（テンキー6・シャノンのスキンだけ）",
   "key.expressionmod.reload_cache": "アニメーションのリセット (テンキー0)",
   "config.expressionmod.title": "Expression Mod 設定",
   "config.expressionmod.general": "一般",
@@ -61,5 +61,11 @@
   "config.expressionmod.shannon_eye_gradient": "目のグラデーションの揺らぎ",
   "config.expressionmod.shannon_eye_gradient.tooltip": "シャノンの目の3色の境界をゆっくり揺らします。目の形と表情は保ちます。",
   "config.expressionmod.shannon_dialogue_motion": "会話に合わせた視線・瞬き",
-  "config.expressionmod.shannon_dialogue_motion.tooltip": "聞く・考える・話す活動を表情に重ねます。頭は視線に少し遅れて追従します。"
+  "config.expressionmod.shannon_dialogue_motion.tooltip": "聞く・考える・話す活動を表情に重ねます。頭は視線に少し遅れて追従します。",
+  "config.expressionmod.category.emote_names": "表情の名前",
+  "config.expressionmod.category.emote_names.tooltip": "スキンに描いた表情 1〜5 の呼び名",
+  "config.expressionmod.emote_names.description": "スキンの表情1〜5に描いた顔に合わせて、呼び名を付けられます。選択画面（Ctrl＋右クリック）とテンキーを押した時に出ます。名前はこのPCだけのもので、ほかの人にはスキンの顔がそのまま見えます。空欄は「表情N」になります。",
+  "config.expressionmod.emote_name": "表情 %s の名前",
+  "config.expressionmod.emote_name.tooltip": "テンキー%s と選択画面の %s 番に出る名前",
+  "config.expressionmod.emote_name.too_long": "%s 文字までです"
 }

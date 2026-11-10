@@ -33,6 +33,9 @@ public class ModConfig {
     // observer sees her expressions); players listed here get it too. An old config's enableShannonSkinProfile is ignored.
     public String[] shannonSkinPlayers = {com.expression.skin.ShannonSkinProfile.PLAYER_UUID};
 
+    // スキンに描いた表情スロット 1〜5 の呼び名（人によって描いた顔が違うので自由に決める）
+    public String[] emoteSlotNames = EmoteSlotNames.defaults();
+
     // デフォルトのエモート持続時間（ミリ秒）
     public long defaultEmoteDurationMs = 3000;
 
@@ -65,6 +68,7 @@ public class ModConfig {
                 String json = Files.readString(CONFIG_PATH);
                 ModConfig config = GSON.fromJson(json, ModConfig.class);
                 if (config != null) {
+                    config.emoteSlotNames = EmoteSlotNames.normalize(config.emoteSlotNames);
                     ExpressionMod.LOGGER.info("Config loaded from " + CONFIG_PATH);
                     return config;
                 }
@@ -87,6 +91,16 @@ public class ModConfig {
         } catch (IOException e) {
             ExpressionMod.LOGGER.error("Failed to save config", e);
         }
+    }
+
+    /** 表情スロット（0 始まり）の呼び名。空なら「表情 N」。 */
+    public String slotName(int slot) {
+        return EmoteSlotNames.name(emoteSlotNames, slot);
+    }
+
+    public void setSlotName(int slot, String name) {
+        emoteSlotNames = EmoteSlotNames.normalize(emoteSlotNames);
+        if (slot >= 0 && slot < EmoteSlotNames.SLOTS) emoteSlotNames[slot] = EmoteSlotNames.clean(name);
     }
 
     /**

@@ -22,6 +22,11 @@ public class ModMenuIntegration implements ModMenuApi {
     }
 
     private Screen createConfigScreen(Screen parent) {
+        return create(parent, false);
+    }
+
+    /** The settings screen; openNames starts on the expression-names tab. */
+    public static Screen create(Screen parent, boolean openNames) {
         ModConfig config = ModConfig.getInstance();
 
         ConfigBuilder builder = ConfigBuilder.create()
@@ -91,6 +96,27 @@ public class ModMenuIntegration implements ModMenuApi {
                 .setTooltip(Text.translatable("config.expressionmod.enable_blinking.tooltip"))
                 .setSaveConsumer(value -> config.enableBlinking = value)
                 .build());
+
+        // 表情の名前カテゴリ（スキンに描いた表情スロット 1〜5 の呼び名）
+        ConfigCategory names = builder.getOrCreateCategory(
+                Text.translatable("config.expressionmod.category.emote_names"));
+        names.addEntry(entryBuilder
+                .startTextDescription(Text.translatable("config.expressionmod.emote_names.description"))
+                .build());
+        for (int i = 0; i < com.expression.config.EmoteSlotNames.SLOTS; i++) {
+            int slot = i;
+            names.addEntry(entryBuilder
+                    .startStrField(Text.translatable("config.expressionmod.emote_name", slot + 1),
+                            config.emoteSlotNames[slot])
+                    .setDefaultValue(com.expression.config.EmoteSlotNames.defaultName(slot))
+                    .setErrorSupplier(value -> value.strip().length() > com.expression.config.EmoteSlotNames.MAX_LENGTH
+                            ? java.util.Optional.of(Text.translatable("config.expressionmod.emote_name.too_long",
+                                    com.expression.config.EmoteSlotNames.MAX_LENGTH))
+                            : java.util.Optional.empty())
+                    .setTooltip(Text.translatable("config.expressionmod.emote_name.tooltip", slot + 1, slot + 1))
+                    .setSaveConsumer(value -> config.setSlotName(slot, value))
+                    .build());
+        }
 
         // 詳細設定カテゴリ
         ConfigCategory advanced = builder.getOrCreateCategory(
@@ -169,6 +195,10 @@ public class ModMenuIntegration implements ModMenuApi {
                 .setSaveConsumer(value -> config.debugMode = value)
                 .build());
 
-        return builder.build();
+        Screen screen = builder.build();
+        // Tab order: General, Expression names, Advanced, Debug.
+        if (openNames && screen instanceof me.shedaniel.clothconfig2.gui.AbstractTabbedConfigScreen tabbed)
+            tabbed.selectedCategoryIndex = 1;
+        return screen;
     }
 }

@@ -1,11 +1,11 @@
 {
   "category.expressionmod.emotes": "Expression Emotes",
-  "key.expressionmod.smile": "Smile (Numpad 1)",
-  "key.expressionmod.angry": "Angry (Numpad 2)",
-  "key.expressionmod.sad": "Sad (Numpad 3)",
-  "key.expressionmod.surprised": "Surprised (Numpad 4)",
-  "key.expressionmod.think": "Think (Numpad 5)",
-  "key.expressionmod.shy": "Shy (Numpad 6)",
+  "key.expressionmod.smile": "Expression 1 (Numpad 1)",
+  "key.expressionmod.angry": "Expression 2 (Numpad 2)",
+  "key.expressionmod.sad": "Expression 3 (Numpad 3)",
+  "key.expressionmod.surprised": "Expression 4 (Numpad 4)",
+  "key.expressionmod.think": "Expression 5 (Numpad 5)",
+  "key.expressionmod.shy": "Expression 6 (Numpad 6, Shannon's skin only)",
   "key.expressionmod.reload_cache": "Reset animations (Numpad 0)",
   "config.expressionmod.title": "Expression Mod Settings",
   "config.expressionmod.general": "General",
@@ -61,5 +61,11 @@
   "config.expressionmod.shannon_eye_gradient": "Living eye gradient",
   "config.expressionmod.shannon_eye_gradient.tooltip": "Slowly sway the boundaries of Shannon's three eye colors while keeping expression geometry.",
   "config.expressionmod.shannon_dialogue_motion": "Conversation gaze and blink",
-  "config.expressionmod.shannon_dialogue_motion.tooltip": "Layer listening, thinking and speaking over the expression. The head gently follows the eyes."
+  "config.expressionmod.shannon_dialogue_motion.tooltip": "Layer listening, thinking and speaking over the expression. The head gently follows the eyes.",
+  "config.expressionmod.category.emote_names": "Expression names",
+  "config.expressionmod.category.emote_names.tooltip": "Names for the expressions painted in your skin's slots 1-5",
+  "config.expressionmod.emote_names.description": "Name each of your skin's five painted expression slots after the face you drew there. The names appear in the expression picker (Ctrl + right click) and when you press an expression key. They stay on this PC; other players see the painted face itself. A blank name shows as \"Expression N\".",
+  "config.expressionmod.emote_name": "Name of expression %s",
+  "config.expressionmod.emote_name.tooltip": "Shown for Numpad %s and slot %s of the picker",
+  "config.expressionmod.emote_name.too_long": "Up to %s characters"
 }
